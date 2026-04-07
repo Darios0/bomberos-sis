@@ -1,8 +1,9 @@
-const express = require('express')
-const cors    = require('cors')
-const bcrypt  = require('bcryptjs')
-const jwt     = require('jsonwebtoken')
-const prisma  = require('./prisma/client')
+const express    = require('express')
+const cors       = require('cors')
+const bcrypt     = require('bcryptjs')
+const jwt        = require('jsonwebtoken')
+const prisma     = require('./prisma/client')
+const turnosRoutes = require('./routes/turnos')
 require('dotenv').config()
 
 const app = express()
@@ -43,6 +44,8 @@ app.post('/api/auth/login', async (req, res) => {
     res.status(500).json({ error: 'Error en el servidor' })
   }
 })
+
+app.use('/api/turnos', turnosRoutes)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
