@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id       Int      @id @default(autoincrement())
+  nombre   String
+  email    String   @unique
+  password String
+  rol      Rol      @default(VISUALIZADOR)
+  activo   Boolean  @default(true)
+  creadoEn DateTime @default(now())
+}
+
+enum Rol {
+  ADMIN
+  OPERADOR
+  EVALUADOR
+  VISUALIZADOR
+}
+
+model Empleado {
+  id                  Int                 @id @default(autoincrement())
+  nombre              String
+  cedula              String              @unique
+  rango               String
+  grupo               Grupo
+  activo              Boolean             @default(true)
+  creadoEn            DateTime            @default(now())
+  asignaciones        Asignacion[]
+  ausencias           Ausencia[]
+  evaluaciones        Evaluacion[]
+  historialEstaciones HistorialEstacion[]
+}
+
+enum Grupo {
+  GRUPO_1
+  GRUPO_2
+  GRUPO_3
+}
+
+model Estacion {
+  id           Int                 @id @default(autoincrement())
+  nombre       String
+  direccion    String?
+  asignaciones Asignacion[]
+  historial    HistorialEstacion[]
+}
+
+model Asignacion {
+  id         Int      @id @default(autoincrement())
+  empleadoId Int
+  estacionId Int
+  fecha      DateTime @db.Date
+  grupo      Grupo
+  empleado   Empleado @relation(fields: [empleadoId], references: [id])
+  estacion   Estacion @relation(fields: [estacionId], references: [id])
+
+  @@unique([empleadoId, fecha])
+}
+
+model Ausencia {
+  id          Int          @id @default(autoincrement())
+  empleadoId  Int
+  tipo        TipoAusencia
+  fechaInicio DateTime     @db.Date
+  fechaFin    DateTime     @db.Date
+  descripcion String?
+  empleado    Empleado     @relation(fields: [empleadoId], references: [id])
+}
+
+enum TipoAusencia {
+  VACACIONES
+  ENFERMEDAD
+  PERMISO
+  FALTA
+}
+
+model Evaluacion {
+  id          Int            @id @default(autoincrement())
+  empleadoId  Int
+  tipo        TipoEvaluacion
+  descripcion String
+  fecha       DateTime       @default(now())
+  empleado    Empleado       @relation(fields: [empleadoId], references: [id])
+}
+
+enum TipoEvaluacion {
+  POSITIVO
+  NEGATIVO
+}
+
+model HistorialEstacion {
+  id          Int       @id @default(autoincrement())
+  empleadoId  Int
+  estacionId  Int
+  fechaInicio DateTime  @db.Date
+  fechaFin    DateTime? @db.Date
+  empleado    Empleado  @relation(fields: [empleadoId], references: [id])
+  estacion    Estacion  @relation(fields: [estacionId], references: [id])
+}

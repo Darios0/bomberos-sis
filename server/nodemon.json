@@ -1,0 +1,5 @@
+{
+  "watch": ["index.js", "routes", "prisma/client.js"],
+  "ext": "js",
+  "ignore": ["node_modules", "prisma/migrations"]
+}

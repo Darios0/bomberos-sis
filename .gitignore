@@ -1,0 +1,27 @@
+# Dependencias
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Variables de entorno (NUNCA subir al repositorio)
+.env
+server/.env
+client/.env
+
+# Prisma
+server/prisma/migrations/
+server/generated/
+
+# Build de React
+client/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operativo Windows
+Thumbs.db
+desktop.ini
+
+# VS Code
+.vscode/
