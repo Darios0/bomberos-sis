@@ -4,6 +4,7 @@ const bcrypt     = require('bcryptjs')
 const jwt        = require('jsonwebtoken')
 const prisma     = require('./prisma/client')
 const turnosRoutes = require('./routes/turnos')
+const empleadosRoutes = require('./routes/empleados')
 require('dotenv').config()
 
 const app = express()
@@ -46,6 +47,7 @@ app.post('/api/auth/login', async (req, res) => {
 })
 
 app.use('/api/turnos', turnosRoutes)
+app.use('/api/empleados', empleadosRoutes)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
