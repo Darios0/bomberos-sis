@@ -1,23 +1,59 @@
-import { Box, Typography, Button, Chip } from '@mui/material'
+import { useState } from 'react'
+import { Box, AppBar, Toolbar, Typography, Button, Drawer, List, ListItem, ListItemButton, ListItemText, Chip } from '@mui/material'
 import { useAuth } from '../context/AuthContext'
+import Empleados from './Empleados'
+
+const MENU = [
+  { label: 'Personal',  vista: 'empleados' },
+]
 
 export default function Dashboard() {
   const { usuario, logout } = useAuth()
+  const [vista, setVista]   = useState('empleados')
 
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" fontWeight="bold" mb={1}>
-        Bienvenido, {usuario?.nombre}
-      </Typography>
-      <Chip
-        label={usuario?.rol}
-        color="error"
-        sx={{ mb: 3 }}
-      />
-      <br />
-      <Button variant="outlined" color="error" onClick={logout}>
-        Cerrar sesión
-      </Button>
+    <Box sx={{ display: 'flex' }}>
+      {/* Sidebar */}
+      <Drawer variant="permanent" sx={{ width: 220, '& .MuiDrawer-paper': { width: 220, bgcolor: '#b71c1c' } }}>
+        <Box sx={{ p: 2, color: 'white' }}>
+          <Typography variant="h6" fontWeight="bold">🚒 Bomberos</Typography>
+          <Typography variant="caption">{usuario?.nombre}</Typography>
+          <br />
+          <Chip label={usuario?.rol} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', mt: 0.5 }} />
+        </Box>
+        <List>
+          {MENU.map(item => (
+            <ListItem key={item.vista} disablePadding>
+              <ListItemButton
+                selected={vista === item.vista}
+                onClick={() => setVista(item.vista)}
+                sx={{ color: 'white', '&.Mui-selected': { bgcolor: 'rgba(255,255,255,0.2)' } }}
+              >
+                <ListItemText primary={item.label} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+        <Box sx={{ mt: 'auto', p: 2 }}>
+          <Button fullWidth variant="outlined" sx={{ color: 'white', borderColor: 'white' }} onClick={logout}>
+            Cerrar sesión
+          </Button>
+        </Box>
+      </Drawer>
+
+      {/* Contenido */}
+      <Box component="main" sx={{ flexGrow: 1, p: 0, minHeight: '100vh', bgcolor: '#fafafa' }}>
+        <AppBar position="static" sx={{ bgcolor: '#c62828' }}>
+          <Toolbar>
+            <Typography variant="h6">
+              {MENU.find(m => m.vista === vista)?.label || 'Sistema'}
+            </Typography>
+          </Toolbar>
+        </AppBar>
+        <Box sx={{ p: 3 }}>
+          {vista === 'empleados' && <Empleados />}
+        </Box>
+      </Box>
     </Box>
   )
 }
