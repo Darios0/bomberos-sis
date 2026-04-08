@@ -1,14 +1,21 @@
 const express = require('express')
-const { getGrupoPorFecha, getProximosTurnos } = require('../utils/turnos')
+const {
+  getGrupoOperativoPorFecha,
+  getResumenEcuPorFecha,
+  getProximosTurnos
+} = require('../utils/turnos')
 const router = express.Router()
 
 // GET /api/turnos/fecha/:fecha
-// Ejemplo: /api/turnos/fecha/2026-04-06
 router.get('/fecha/:fecha', (req, res) => {
   try {
-    const grupo = getGrupoPorFecha(req.params.fecha)
-    res.json({ fecha: req.params.fecha, grupo })
-  } catch (error) {
+    const { fecha } = req.params
+    res.json({
+      fecha,
+      operativo: getGrupoOperativoPorFecha(fecha),
+      ecu:       getResumenEcuPorFecha(fecha)
+    })
+  } catch {
     res.status(400).json({ error: 'Fecha inválida' })
   }
 })

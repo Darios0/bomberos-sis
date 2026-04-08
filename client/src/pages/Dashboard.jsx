@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Box, AppBar, Toolbar, Typography, Button, Drawer, List, ListItem, ListItemButton, ListItemText, Chip } from '@mui/material'
 import { useAuth } from '../context/AuthContext'
 import Empleados from './Empleados'
+import Estaciones from './Estaciones'
 
 const MENU = [
-  { label: 'Personal',  vista: 'empleados' },
+  { label: 'Personal',   vista: 'empleados' },
+  { label: 'Estaciones', vista: 'estaciones' },
 ]
 
 export default function Dashboard() {
@@ -52,6 +54,7 @@ export default function Dashboard() {
         </AppBar>
         <Box sx={{ p: 3 }}>
           {vista === 'empleados' && <Empleados />}
+          {vista === 'estaciones' && <Estaciones />}
         </Box>
       </Box>
     </Box>

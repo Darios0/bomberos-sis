@@ -29,25 +29,43 @@ model Empleado {
   nombre              String
   cedula              String              @unique
   rango               String
-  grupo               Grupo
+  tipoPersonal        TipoPersonal        @default(OPERATIVO)
+  grupoOperativo      GrupoOperativo?
+  grupoEcu            GrupoEcu?
+  estacionId          Int?
   activo              Boolean             @default(true)
   creadoEn            DateTime            @default(now())
+  estacion            Estacion?           @relation(fields: [estacionId], references: [id])
   asignaciones        Asignacion[]
   ausencias           Ausencia[]
   evaluaciones        Evaluacion[]
   historialEstaciones HistorialEstacion[]
 }
 
-enum Grupo {
+enum TipoPersonal {
+  OPERATIVO
+  ECU
+  ADMINISTRATIVO
+}
+
+enum GrupoOperativo {
   GRUPO_1
   GRUPO_2
   GRUPO_3
+}
+
+enum GrupoEcu {
+  ECU_1
+  ECU_2
+  ECU_3
+  ECU_4
 }
 
 model Estacion {
   id           Int                 @id @default(autoincrement())
   nombre       String
   direccion    String?
+  empleados    Empleado[]
   asignaciones Asignacion[]
   historial    HistorialEstacion[]
 }
@@ -57,11 +75,11 @@ model Asignacion {
   empleadoId Int
   estacionId Int
   fecha      DateTime @db.Date
-  grupo      Grupo
+  turno      String
   empleado   Empleado @relation(fields: [empleadoId], references: [id])
   estacion   Estacion @relation(fields: [estacionId], references: [id])
 
-  @@unique([empleadoId, fecha])
+  @@unique([empleadoId, fecha, turno])
 }
 
 model Ausencia {

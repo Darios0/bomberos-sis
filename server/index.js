@@ -5,6 +5,7 @@ const jwt        = require('jsonwebtoken')
 const prisma     = require('./prisma/client')
 const turnosRoutes = require('./routes/turnos')
 const empleadosRoutes = require('./routes/empleados')
+const estacionesRoutes = require('./routes/estaciones')
 require('dotenv').config()
 
 const app = express()
@@ -48,6 +49,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.use('/api/turnos', turnosRoutes)
 app.use('/api/empleados', empleadosRoutes)
+app.use('/api/estaciones', estacionesRoutes)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
