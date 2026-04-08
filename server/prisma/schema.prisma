@@ -40,6 +40,7 @@ model Empleado {
   ausencias           Ausencia[]
   evaluaciones        Evaluacion[]
   historialEstaciones HistorialEstacion[]
+  distributivoItems   DistributivoItem[]
 }
 
 enum TipoPersonal {
@@ -68,6 +69,7 @@ model Estacion {
   empleados    Empleado[]
   asignaciones Asignacion[]
   historial    HistorialEstacion[]
+  distributivoItems   DistributivoItem[]
 }
 
 model Asignacion {
@@ -83,13 +85,17 @@ model Asignacion {
 }
 
 model Ausencia {
-  id          Int          @id @default(autoincrement())
-  empleadoId  Int
-  tipo        TipoAusencia
-  fechaInicio DateTime     @db.Date
-  fechaFin    DateTime     @db.Date
-  descripcion String?
-  empleado    Empleado     @relation(fields: [empleadoId], references: [id])
+  id            Int          @id @default(autoincrement())
+  empleadoId    Int
+  tipo          TipoAusencia
+  fechaInicio   DateTime     @db.Date
+  fechaFin      DateTime     @db.Date
+  horaInicio    String?
+  horaFin       String?
+  descripcion   String?
+  tipoPermiso   String?
+  creadoEn      DateTime     @default(now())
+  empleado      Empleado     @relation(fields: [empleadoId], references: [id])
 }
 
 enum TipoAusencia {
@@ -97,6 +103,7 @@ enum TipoAusencia {
   ENFERMEDAD
   PERMISO
   FALTA
+  ATRASO
 }
 
 model Evaluacion {
@@ -105,12 +112,13 @@ model Evaluacion {
   tipo        TipoEvaluacion
   descripcion String
   fecha       DateTime       @default(now())
+  creadoEn    DateTime       @default(now())
   empleado    Empleado       @relation(fields: [empleadoId], references: [id])
 }
 
 enum TipoEvaluacion {
-  POSITIVO
-  NEGATIVO
+  MERITO
+  DEMERITO
 }
 
 model HistorialEstacion {
@@ -121,4 +129,29 @@ model HistorialEstacion {
   fechaFin    DateTime? @db.Date
   empleado    Empleado  @relation(fields: [empleadoId], references: [id])
   estacion    Estacion  @relation(fields: [estacionId], references: [id])
+}
+model Distributivo {
+  id         Int                  @id @default(autoincrement())
+  mes        Int
+  anio       Int
+  grupo      GrupoOperativo?
+  esEcu      Boolean              @default(false)
+  publicado  Boolean              @default(false)
+  creadoEn   DateTime             @default(now())
+  items      DistributivoItem[]
+
+  @@unique([mes, anio, grupo])
+}
+
+model DistributivoItem {
+  id             Int          @id @default(autoincrement())
+  distributivoId Int
+  empleadoId     Int
+  estacionId     Int?
+  esEcu          Boolean      @default(false)
+  esAdmin        Boolean      @default(false)
+  orden          Int          @default(0)
+  distributivo   Distributivo @relation(fields: [distributivoId], references: [id])
+  empleado       Empleado     @relation(fields: [empleadoId], references: [id])
+  estacion       Estacion?    @relation(fields: [estacionId], references: [id])
 }

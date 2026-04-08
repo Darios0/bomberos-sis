@@ -3,15 +3,17 @@ import { Box, AppBar, Toolbar, Typography, Button, Drawer, List, ListItem, ListI
 import { useAuth } from '../context/AuthContext'
 import Empleados from './Empleados'
 import Estaciones from './Estaciones'
+import Calendario from './Calendario'
 
 const MENU = [
-  { label: 'Personal',   vista: 'empleados' },
-  { label: 'Estaciones', vista: 'estaciones' },
+  { label: 'Calendario',  vista: 'calendario' },
+  { label: 'Personal',    vista: 'empleados' },
+  { label: 'Estaciones',  vista: 'estaciones' },
 ]
 
 export default function Dashboard() {
   const { usuario, logout } = useAuth()
-  const [vista, setVista]   = useState('empleados')
+  const [vista, setVista]   = useState('calendario')
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -55,6 +57,7 @@ export default function Dashboard() {
         <Box sx={{ p: 3 }}>
           {vista === 'empleados' && <Empleados />}
           {vista === 'estaciones' && <Estaciones />}
+          {vista === 'calendario'  && <Calendario />}
         </Box>
       </Box>
     </Box>

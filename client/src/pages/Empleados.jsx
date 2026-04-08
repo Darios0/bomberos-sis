@@ -6,6 +6,7 @@ import {
   Paper, Select, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, TextField, Typography, Alert, Tabs, Tab
 } from '@mui/material'
+import EmpleadoDetalle from './EmpleadoDetalle'
 
 const RANGOS = [
   'Bombero', 'Suboficial', 'Cabo', 'Sargento', 'Subteniente',
@@ -36,6 +37,7 @@ export default function Empleados() {
   const [editando, setEditando]     = useState(null)
   const [error, setError]           = useState('')
   const [busqueda, setBusqueda]     = useState('')
+  const [empleadoDetalle, setEmpleadoDetalle] = useState(null)
   const [tabActual, setTabActual]   = useState(0)
 
   const cargar = async () => {
@@ -116,6 +118,11 @@ export default function Empleados() {
     }
   }
 
+  const activar = async (id) => {
+  if (!confirm('¿Reactivar este empleado?')) return
+  await api.put(`/empleados/${id}`, { activo: true })
+  cargar()
+}
   const desactivar = async (id) => {
     if (!confirm('¿Desactivar este empleado?')) return
     await api.delete(`/empleados/${id}`)
@@ -208,13 +215,20 @@ export default function Empleados() {
                   />
                 </TableCell>
                 <TableCell>
-                  <Button size="small" onClick={() => abrirEditar(emp)}>Editar</Button>
-                  {emp.activo && (
-                    <Button size="small" color="error" onClick={() => desactivar(emp.id)}>
-                      Desactivar
-                    </Button>
-                  )}
-                </TableCell>
+  <Button size="small" onClick={() => abrirEditar(emp)}>Editar</Button>
+  <Button size="small" color="info" onClick={() => setEmpleadoDetalle(emp)}>
+    Detalle
+  </Button>
+  {emp.activo ? (
+    <Button size="small" color="error" onClick={() => desactivar(emp.id)}>
+      Desactivar
+    </Button>
+  ) : (
+    <Button size="small" color="success" onClick={() => activar(emp.id)}>
+      Activar
+    </Button>
+  )}
+</TableCell>
               </TableRow>
             ))}
             {filtrados.length === 0 && (
@@ -299,6 +313,11 @@ export default function Empleados() {
           </Button>
         </DialogActions>
       </Dialog>
+      <EmpleadoDetalle
+  empleado={empleadoDetalle}
+  onCerrar={() => setEmpleadoDetalle(null)}
+  onActualizar={cargar}
+/>
     </Box>
   )
 }
