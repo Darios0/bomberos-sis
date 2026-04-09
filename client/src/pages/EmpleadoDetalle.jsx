@@ -18,6 +18,7 @@ export default function EmpleadoDetalle({ empleado, onCerrar, onActualizar }) {
   const [tab, setTab]               = useState(0)
   const [ausencias, setAusencias]   = useState([])
   const [evaluaciones, setEvaluaciones] = useState([])
+  const [historial, setHistorial] = useState([])
   const [dialogoAus, setDialogoAus] = useState(false)
   const [dialogoEval, setDialogoEval] = useState(false)
   const [error, setError]           = useState('')
@@ -28,16 +29,18 @@ export default function EmpleadoDetalle({ empleado, onCerrar, onActualizar }) {
   })
   const [formEval, setFormEval] = useState({ tipo: 'MERITO', descripcion: '' })
 
-  const cargar = async () => {
-    try {
-      const [a, e] = await Promise.all([
-        api.get(`/ausencias/empleado/${empleado.id}`),
-        api.get(`/evaluaciones/empleado/${empleado.id}`)
-      ])
-      setAusencias(a.data)
-      setEvaluaciones(e.data)
-    } catch {}
-  }
+const cargar = async () => {
+  try {
+    const [a, e, h] = await Promise.all([
+      api.get(`/ausencias/empleado/${empleado.id}`),
+      api.get(`/evaluaciones/empleado/${empleado.id}`),
+      api.get(`/historial/empleado/${empleado.id}`)
+    ])
+    setAusencias(a.data)
+    setEvaluaciones(e.data)
+    setHistorial(h.data)
+  } catch {}
+}
 
   useEffect(() => { if (empleado) cargar() }, [empleado])
 
@@ -125,10 +128,11 @@ export default function EmpleadoDetalle({ empleado, onCerrar, onActualizar }) {
       </DialogTitle>
 
       <DialogContent>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-          <Tab label="Ausencias y permisos" />
-          <Tab label="Méritos y deméritos" />
-        </Tabs>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
+  <Tab label="Ausencias y permisos" />
+  <Tab label="Méritos y deméritos" />
+  <Tab label="Historial de estaciones" />
+</Tabs>
 
         {/* TAB AUSENCIAS */}
         {tab === 0 && (
@@ -236,6 +240,95 @@ export default function EmpleadoDetalle({ empleado, onCerrar, onActualizar }) {
       <DialogActions>
         <Button onClick={onCerrar}>Cerrar</Button>
       </DialogActions>
+
+{/* TAB HISTORIAL */}
+{tab === 2 && (
+  <Box>
+    {historial.length === 0 && (
+      <Typography color="text.secondary" textAlign="center" py={3}>
+        Sin historial de estaciones registrado
+      </Typography>
+    )}
+    {historial.map((h, i) => {
+      const ini = new Date(h.fechaInicio)
+      const fin = h.fechaFin ? new Date(h.fechaFin) : new Date()
+      const meses = Math.round((fin - ini) / (1000 * 60 * 60 * 24 * 30))
+      const anios  = Math.floor(meses / 12)
+      const mesesR = meses % 12
+      const duracion = anios > 0
+        ? `${anios} año${anios > 1 ? 's' : ''} ${mesesR > 0 ? `y ${mesesR} mes${mesesR > 1 ? 'es' : ''}` : ''}`
+        : `${meses} mes${meses !== 1 ? 'es' : ''}`
+
+      return (
+        <Box key={i} sx={{
+          p: 1.5, mb: 1, borderRadius: 1,
+          border: '1px solid',
+          borderColor: h.fechaFin ? 'divider' : 'success.light',
+          bgcolor: h.fechaFin ? '#fafafa' : '#f1f8e9'
+        }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box>
+              <Typography variant="body2" fontWeight="bold">
+                {h.estacion?.nombre || 'Estación desconocida'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {ini.toLocaleDateString('es-EC')} →{' '}
+                {h.fechaFin
+                  ? new Date(h.fechaFin).toLocaleDateString('es-EC')
+                  : 'Actualmente aquí'
+                }
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'right' }}>
+              <Chip
+                label={duracion}
+                size="small"
+                color={h.fechaFin ? 'default' : 'success'}
+              />
+            </Box>
+          </Box>
+        </Box>
+      )
+    })}
+
+    {/* Resumen por estación */}
+    {historial.length > 0 && (
+      <>
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="subtitle2" fontWeight="bold" mb={1}>
+          Tiempo total por estación
+        </Typography>
+        {Object.entries(
+          historial.reduce((acc, h) => {
+            const nombre = h.estacion?.nombre || 'Desconocida'
+            const ini    = new Date(h.fechaInicio)
+            const fin    = h.fechaFin ? new Date(h.fechaFin) : new Date()
+            const dias   = Math.round((fin - ini) / 86400000)
+            acc[nombre]  = (acc[nombre] || 0) + dias
+            return acc
+          }, {})
+        ).map(([nombre, dias]) => {
+          const anios  = Math.floor(dias / 365)
+          const meses  = Math.floor((dias % 365) / 30)
+          return (
+            <Box key={nombre} sx={{
+              display: 'flex', justifyContent: 'space-between',
+              py: 0.5, px: 1, bgcolor: '#f5f5f5',
+              borderRadius: 1, mb: 0.5
+            }}>
+              <Typography variant="body2">{nombre}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {anios > 0 && `${anios} año${anios > 1 ? 's' : ''} `}
+                {meses > 0 && `${meses} mes${meses > 1 ? 'es' : ''}`}
+                {anios === 0 && meses === 0 && 'Menos de 1 mes'}
+              </Typography>
+            </Box>
+          )
+        })}
+      </>
+    )}
+  </Box>
+)}
 
       {/* Dialogo ausencia */}
       <Dialog open={dialogoAus} onClose={() => setDialogoAus(false)} fullWidth maxWidth="sm">

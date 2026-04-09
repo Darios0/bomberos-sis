@@ -10,6 +10,7 @@ const calendarioRoutes = require('./routes/calendario')
 const ausenciasRoutes  = require('./routes/ausencias')
 const evaluacionesRoutes = require('./routes/evaluaciones')
 const distributivoRoutes = require('./routes/distributivo')
+const historialRoutes = require('./routes/historial')
 require('dotenv').config()
 
 const app = express()
@@ -50,6 +51,7 @@ app.use('/api/calendario',  calendarioRoutes)
 app.use('/api/ausencias',   ausenciasRoutes)
 app.use('/api/evaluaciones', evaluacionesRoutes)
 app.use('/api/distributivo', distributivoRoutes)
+app.use('/api/historial', historialRoutes)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {

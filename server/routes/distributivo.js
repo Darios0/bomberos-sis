@@ -2,6 +2,58 @@ const express = require('express')
 const prisma  = require('../prisma/client')
 const router  = express.Router()
 
+// GET /api/distributivo/personal/:grupo/:mes/:anio
+router.get('/personal/:grupo/:mes/:anio', async (req, res) => {
+  try {
+    const { grupo, mes, anio } = req.params
+    const esEcu = grupo === 'ECU'
+
+    const wherePersonal = esEcu
+      ? { tipoPersonal: 'ECU', activo: true }
+      : {
+          OR: [
+            { tipoPersonal: 'OPERATIVO', grupoOperativo: grupo },
+            { tipoPersonal: 'ADMINISTRATIVO' }
+          ],
+          activo: true
+        }
+
+    const personal = await prisma.empleado.findMany({
+      where: wherePersonal,
+      include: {
+        estacion: { select: { id: true, nombre: true } },
+        ausencias: {
+          where: {
+            fechaInicio: { lte: new Date(`${anio}-${String(mes).padStart(2,'0')}-28`) },
+            fechaFin:    { gte: new Date(`${anio}-${String(mes).padStart(2,'0')}-01`) }
+          }
+        }
+      },
+      orderBy: { nombre: 'asc' }
+    })
+
+    const distributivo = await prisma.distributivo.findFirst({
+      where: {
+        mes:   parseInt(mes),
+        anio:  parseInt(anio),
+        grupo: esEcu ? null : grupo,
+        esEcu
+      },
+      include: {
+        items: {
+          orderBy: { orden: 'asc' },
+          include: { empleado: true, estacion: true }
+        }
+      }
+    })
+
+    res.json({ personal, distributivo })
+  } catch (error) {
+    console.error('Error en /personal:', error)
+    res.status(500).json({ error: 'Error al obtener personal' })
+  }
+})
+
 // GET /api/distributivo/:grupo/:mes/:anio
 router.get('/:grupo/:mes/:anio', async (req, res) => {
   try {
@@ -18,16 +70,13 @@ router.get('/:grupo/:mes/:anio', async (req, res) => {
       include: {
         items: {
           orderBy: { orden: 'asc' },
-          include: {
-            empleado: true,
-            estacion: true
-          }
+          include: { empleado: true, estacion: true }
         }
       }
     })
     res.json(distributivo || null)
   } catch (error) {
-    console.error(error)
+    console.error('Error en /:grupo/:mes/:anio:', error)
     res.status(500).json({ error: 'Error al obtener distributivo' })
   }
 })
@@ -40,102 +89,118 @@ router.post('/guardar', async (req, res) => {
   }
 
   try {
-    const esEcu = grupo === 'ECU'
+    const esEcu     = grupo === 'ECU'
+    const mesInt    = parseInt(mes)
+    const anioInt   = parseInt(anio)
+
+    // Primer día y último día del mes
+    const fechaInicio = new Date(`${anioInt}-${String(mesInt).padStart(2,'0')}-01`)
+    const ultimoDia   = new Date(anioInt, mesInt, 0).getDate()
+    const fechaFin    = new Date(`${anioInt}-${String(mesInt).padStart(2,'0')}-${ultimoDia}`)
 
     // Buscar o crear distributivo
     let distributivo = await prisma.distributivo.findFirst({
-      where: {
-        mes: parseInt(mes), anio: parseInt(anio),
-        grupo: esEcu ? null : grupo, esEcu
-      }
+      where: { mes: mesInt, anio: anioInt, grupo: esEcu ? null : grupo, esEcu }
     })
 
     if (!distributivo) {
       distributivo = await prisma.distributivo.create({
-        data: {
-          mes: parseInt(mes), anio: parseInt(anio),
-          grupo: esEcu ? null : grupo, esEcu
-        }
+        data: { mes: mesInt, anio: anioInt, grupo: esEcu ? null : grupo, esEcu }
       })
     }
 
-    // Eliminar items anteriores y recrear
+    // Eliminar items anteriores
     await prisma.distributivoItem.deleteMany({
       where: { distributivoId: distributivo.id }
     })
 
-await prisma.distributivoItem.createMany({
-  data: items.map((item, idx) => ({
-    distributivoId: distributivo.id,
-    empleadoId:     item.empleadoId,
-    estacionId:     item.estacionId  || null,
-    esEcu:          item.esEcu       || false,
-    esAdmin:        item.esAdmin     || false,
-    esJornadaEcu:   item.esJornadaEcu || false,
-    orden:          idx
-  }))
-})
-
-    res.json({ mensaje: 'Distributivo guardado correctamente' })
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Error al guardar distributivo' })
-  }
-})
-
-// GET /api/distributivo/personal/:grupo/:mes/:anio
-router.get('/personal/:grupo/:mes/:anio', async (req, res) => {
-  try {
-    const { grupo, mes, anio } = req.params
-    const esEcu = grupo === 'ECU'
-    const hoy   = new Date()
-
-    // Personal del grupo
-const wherePersonal = esEcu
-  ? { tipoPersonal: 'ECU', activo: true }
-  : {
-      OR: [
-        { tipoPersonal: 'OPERATIVO', grupoOperativo: grupo },
-        { tipoPersonal: 'ADMINISTRATIVO' }
-      ],
-      activo: true
+    // Crear nuevos items
+    if (items.length > 0) {
+      await prisma.distributivoItem.createMany({
+        data: items.map((item, idx) => ({
+          distributivoId: distributivo.id,
+          empleadoId:     item.empleadoId,
+          estacionId:     item.estacionId  || null,
+          esEcu:          item.esEcu       || false,
+          esAdmin:        item.esAdmin     || false,
+          esJornadaEcu:   item.esJornadaEcu || false,
+          orden:          idx
+        }))
+      })
     }
 
-const personal = await prisma.empleado.findMany({
-  where: wherePersonal,
-      include: {
-        estacion: { select: { id: true, nombre: true } },
-        ausencias: {
+    // ── Historial automático ───────────────────────────────────
+    // Solo registrar historial para items con estación asignada
+    const itemsConEstacion = items.filter(i => i.estacionId)
+
+    for (const item of itemsConEstacion) {
+      const empId  = item.empleadoId
+      const estId  = item.estacionId
+
+      // Buscar si ya existe historial para este empleado en este mes/año
+      const historialExistente = await prisma.historialEstacion.findFirst({
+        where: {
+          empleadoId:  empId,
+          fechaInicio: { gte: new Date(`${anioInt}-01-01`) },
+          fechaFin:    {
+            lte: new Date(`${anioInt}-12-31`),
+            not: null
+          },
+          estacionId: estId
+        }
+      })
+
+      // Buscar si hay un historial del mes anterior en la misma estación
+      // para extenderlo en lugar de crear uno nuevo
+      const mesAnterior     = mesInt === 1 ? 12 : mesInt - 1
+      const anioAnterior    = mesInt === 1 ? anioInt - 1 : anioInt
+      const inicioPrevio    = new Date(`${anioAnterior}-${String(mesAnterior).padStart(2,'0')}-01`)
+      const finPrevio       = new Date(anioAnterior, mesAnterior, 0)
+
+      const historialMesAnterior = await prisma.historialEstacion.findFirst({
+        where: {
+          empleadoId:  empId,
+          estacionId:  estId,
+          fechaInicio: { lte: finPrevio },
+          OR: [
+            { fechaFin: null },
+            { fechaFin: { gte: inicioPrevio } }
+          ]
+        }
+      })
+
+      if (historialMesAnterior) {
+        // Extender el historial existente hasta el fin de este mes
+        await prisma.historialEstacion.update({
+          where: { id: historialMesAnterior.id },
+          data:  { fechaFin }
+        })
+      } else {
+        // Crear nuevo registro de historial
+        // Primero cerrar cualquier historial abierto de este empleado
+        await prisma.historialEstacion.updateMany({
           where: {
-            tipo:        'VACACIONES',
-            fechaInicio: { lte: new Date(`${anio}-${mes}-28`) },
-            fechaFin:    { gte: new Date(`${anio}-${mes}-01`) }
+            empleadoId: empId,
+            fechaFin:   null
+          },
+          data: { fechaFin: new Date(fechaInicio.getTime() - 86400000) }
+        })
+
+        await prisma.historialEstacion.create({
+          data: {
+            empleadoId:  empId,
+            estacionId:  estId,
+            fechaInicio,
+            fechaFin
           }
-        }
-      },
-      orderBy: { nombre: 'asc' }
-    })
-
-    // Distributivo actual
-    const distributivo = await prisma.distributivo.findFirst({
-      where: {
-        mes:  parseInt(mes),
-        anio: parseInt(anio),
-        grupo: esEcu ? null : grupo,
-        esEcu
-      },
-      include: {
-        items: {
-          orderBy: { orden: 'asc' },
-          include: { empleado: true, estacion: true }
-        }
+        })
       }
-    })
+    }
 
-    res.json({ personal, distributivo })
+    res.json({ mensaje: 'Distributivo guardado y historial actualizado' })
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Error al obtener personal' })
+    console.error('Error en /guardar:', error)
+    res.status(500).json({ error: 'Error al guardar distributivo' })
   }
 })
 
