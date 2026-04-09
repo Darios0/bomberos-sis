@@ -150,6 +150,7 @@ model DistributivoItem {
   estacionId     Int?
   esEcu          Boolean      @default(false)
   esAdmin        Boolean      @default(false)
+  esJornadaEcu   Boolean      @default(false)
   orden          Int          @default(0)
   distributivo   Distributivo @relation(fields: [distributivoId], references: [id])
   empleado       Empleado     @relation(fields: [empleadoId], references: [id])

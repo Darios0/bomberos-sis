@@ -10,7 +10,7 @@ import EmpleadoDetalle from './EmpleadoDetalle'
 
 const RANGOS = [
   'Bombero', 'Suboficial', 'Cabo', 'Sargento', 'Subteniente',
-  'Teniente', 'Capitán', 'Mayor', 'Teniente Coronel', 'Coronel'
+  'Teniente', 'Capitán', 'Mayor', 'Teniente Coronel', 'Coronel', 'Otro'
 ]
 const GRUPOS_OPERATIVOS = ['GRUPO_1', 'GRUPO_2', 'GRUPO_3']
 const GRUPOS_ECU        = ['ECU_1', 'ECU_2', 'ECU_3', 'ECU_4']

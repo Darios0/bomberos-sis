@@ -2,11 +2,10 @@ const express = require('express')
 const prisma  = require('../prisma/client')
 const router  = express.Router()
 
-// GET /api/estaciones
 router.get('/', async (req, res) => {
   try {
     const estaciones = await prisma.estacion.findMany({
-      orderBy: { nombre: 'asc' }
+      orderBy: { id: 'asc' }
     })
     res.json(estaciones)
   } catch {
@@ -14,7 +13,6 @@ router.get('/', async (req, res) => {
   }
 })
 
-// POST /api/estaciones
 router.post('/', async (req, res) => {
   const { nombre, direccion } = req.body
   if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' })
@@ -28,7 +26,6 @@ router.post('/', async (req, res) => {
   }
 })
 
-// PUT /api/estaciones/:id
 router.put('/:id', async (req, res) => {
   const { nombre, direccion } = req.body
   try {
