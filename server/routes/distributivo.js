@@ -129,75 +129,82 @@ router.post('/guardar', async (req, res) => {
       })
     }
 
-    // ── Historial automático ───────────────────────────────────
-    // Solo registrar historial para items con estación asignada
-    const itemsConEstacion = items.filter(i => i.estacionId)
+  // ── Historial automático ───────────────────────────────────────
+const itemsConEstacion = items.filter(i => i.estacionId)
 
-    for (const item of itemsConEstacion) {
-      const empId  = item.empleadoId
-      const estId  = item.estacionId
+for (const item of itemsConEstacion) {
+  const empId = item.empleadoId
+  const estId = item.estacionId
 
-      // Buscar si ya existe historial para este empleado en este mes/año
-      const historialExistente = await prisma.historialEstacion.findFirst({
-        where: {
-          empleadoId:  empId,
-          fechaInicio: { gte: new Date(`${anioInt}-01-01`) },
-          fechaFin:    {
-            lte: new Date(`${anioInt}-12-31`),
-            not: null
-          },
-          estacionId: estId
-        }
-      })
-
-      // Buscar si hay un historial del mes anterior en la misma estación
-      // para extenderlo en lugar de crear uno nuevo
-      const mesAnterior     = mesInt === 1 ? 12 : mesInt - 1
-      const anioAnterior    = mesInt === 1 ? anioInt - 1 : anioInt
-      const inicioPrevio    = new Date(`${anioAnterior}-${String(mesAnterior).padStart(2,'0')}-01`)
-      const finPrevio       = new Date(anioAnterior, mesAnterior, 0)
-
-      const historialMesAnterior = await prisma.historialEstacion.findFirst({
-        where: {
-          empleadoId:  empId,
-          estacionId:  estId,
-          fechaInicio: { lte: finPrevio },
-          OR: [
-            { fechaFin: null },
-            { fechaFin: { gte: inicioPrevio } }
-          ]
-        }
-      })
-
-      if (historialMesAnterior) {
-        // Extender el historial existente hasta el fin de este mes
-        await prisma.historialEstacion.update({
-          where: { id: historialMesAnterior.id },
-          data:  { fechaFin }
-        })
-      } else {
-        // Crear nuevo registro de historial
-        // Primero cerrar cualquier historial abierto de este empleado
-        await prisma.historialEstacion.updateMany({
-          where: {
-            empleadoId: empId,
-            fechaFin:   null
-          },
-          data: { fechaFin: new Date(fechaInicio.getTime() - 86400000) }
-        })
-
-        await prisma.historialEstacion.create({
-          data: {
-            empleadoId:  empId,
-            estacionId:  estId,
-            fechaInicio,
-            fechaFin
-          }
-        })
-      }
+  // Buscar si ya existe historial para este empleado en este mes y año exacto
+  const historialExistente = await prisma.historialEstacion.findFirst({
+    where: {
+      empleadoId:  empId,
+      estacionId:  estId,
+      fechaInicio: fechaInicio,
+      fechaFin:    fechaFin
     }
+  })
 
-    res.json({ mensaje: 'Distributivo guardado y historial actualizado' })
+  // Si ya existe exactamente este registro, no hacer nada
+  if (historialExistente) continue
+
+  // Verificar si hay un historial del mes anterior en la misma estación
+  const mesAnterior  = mesInt === 1 ? 12 : mesInt - 1
+  const anioAnterior = mesInt === 1 ? anioInt - 1 : anioInt
+  const ultimoDiaMesAnterior = new Date(anioAnterior, mesAnterior, 0).getDate()
+  const finMesAnterior = new Date(`${anioAnterior}-${String(mesAnterior).padStart(2,'0')}-${ultimoDiaMesAnterior}`)
+  const iniMesAnterior = new Date(`${anioAnterior}-${String(mesAnterior).padStart(2,'0')}-01`)
+
+  const historialContinuo = await prisma.historialEstacion.findFirst({
+    where: {
+      empleadoId:  empId,
+      estacionId:  estId,
+      fechaInicio: iniMesAnterior,
+      fechaFin:    finMesAnterior
+    }
+  })
+
+  if (historialContinuo) {
+    // Extender el historial hasta el fin de este mes
+    await prisma.historialEstacion.update({
+      where: { id: historialContinuo.id },
+      data:  { fechaFin }
+    })
+  } else {
+    // Cerrar historial abierto anterior si lo hay
+    await prisma.historialEstacion.updateMany({
+      where: { empleadoId: empId, fechaFin: null },
+      data:  { fechaFin: new Date(fechaInicio.getTime() - 86400000) }
+    })
+    // Crear nuevo registro
+    await prisma.historialEstacion.create({
+      data: { empleadoId: empId, estacionId: estId, fechaInicio, fechaFin }
+    })
+  }
+}
+
+// Limpiar historial duplicado — dejar solo un registro por empleado+estación+mes
+// Esto corrige registros duplicados previos
+const todosLosHistoriales = await prisma.historialEstacion.findMany({
+  where: {
+    fechaInicio: fechaInicio,
+    fechaFin:    fechaFin
+  },
+  orderBy: { id: 'asc' }
+})
+
+const vistos = new Set()
+for (const h of todosLosHistoriales) {
+  const clave = `${h.empleadoId}-${h.estacionId}`
+  if (vistos.has(clave)) {
+    await prisma.historialEstacion.delete({ where: { id: h.id } })
+  } else {
+    vistos.add(clave)
+  }
+}
+
+res.json({ mensaje: 'Distributivo guardado y historial actualizado' })
   } catch (error) {
     console.error('Error en /guardar:', error)
     res.status(500).json({ error: 'Error al guardar distributivo' })

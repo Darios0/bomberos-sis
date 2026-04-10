@@ -342,17 +342,18 @@ export default function Distributivo() {
       todasEst.forEach(e => { nuevasAsig[e.id] = [] })
       const nuevoAdmin = []
 
-      if (distributivo?.items?.length > 0) {
-        distributivo.items.forEach(item => {
-          idsAsignados.add(item.empleadoId)
-          const emp = { ...item.empleado, esAdmin: item.esAdmin, esEcu: item.esEcu }
-          if (!item.esEcu && !item.estacionId) {
-            nuevoAdmin.push(emp)
-          } else if (item.estacionId && nuevasAsig[item.estacionId] !== undefined) {
-            nuevasAsig[item.estacionId].push(emp)
-          }
-        })
-      }
+if (distributivo?.items?.length > 0) {
+  distributivo.items.forEach(item => {
+    // Marcar TODOS los items como asignados para excluirlos de la lista
+    idsAsignados.add(item.empleadoId)
+    const emp = { ...item.empleado, esAdmin: item.esAdmin, esEcu: item.esEcu }
+    if (item.esAdmin && !item.estacionId) {
+      nuevoAdmin.push(emp)
+    } else if (item.estacionId && nuevasAsig[item.estacionId] !== undefined) {
+      nuevasAsig[item.estacionId].push(emp)
+    }
+  })
+}
 
       // ECU fijo con jornada ordinaria
       const nuevoEcu     = { ECU_1:[], ECU_2:[], ECU_3:[], ECU_4:[] }
