@@ -156,3 +156,35 @@ model DistributivoItem {
   empleado       Empleado     @relation(fields: [empleadoId], references: [id])
   estacion       Estacion?    @relation(fields: [estacionId], references: [id])
 }
+
+model Notificacion {
+  id          Int                 @id @default(autoincrement())
+  titulo      String
+  mensaje     String
+  urgencia    NivelUrgencia       @default(NORMAL)
+  destinatario Destinatario       @default(TODOS)
+  creadoPor   Int
+  creadoEn    DateTime            @default(now())
+  lecturas    NotificacionLeida[]
+}
+
+enum Destinatario {
+  TODOS
+  GRUPO_1
+  GRUPO_2
+  GRUPO_3
+}
+
+model NotificacionLeida {
+  id              Int          @id @default(autoincrement())
+  notificacionId  Int
+  usuarioId       Int
+  leidoEn         DateTime     @default(now())
+  notificacion    Notificacion @relation(fields: [notificacionId], references: [id])
+}
+
+enum NivelUrgencia {
+  NORMAL
+  URGENTE
+  EMERGENCIA
+}

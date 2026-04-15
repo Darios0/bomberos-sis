@@ -4,7 +4,7 @@ import {
   useSensor, useSensors, useDroppable
 } from '@dnd-kit/core'
 import {
-  SortableContext, verticalListSortingStrategy, useSortable
+  SortableContext, verticalListSortingStrategy, useSortable, arrayMove
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import api from '../api/axios'
@@ -355,24 +355,24 @@ if (distributivo?.items?.length > 0) {
   })
 }
 
-      // ECU fijo con jornada ordinaria
-      const nuevoEcu     = { ECU_1:[], ECU_2:[], ECU_3:[], ECU_4:[] }
-      const nuevoJornada = []
-      const idsEcuAsig   = new Set()
+// ECU fijo con jornada ordinaria
+const nuevoEcu     = { ECU_1:[], ECU_2:[], ECU_3:[], ECU_4:[] }
+const nuevoJornada = []
 
-      const distEcu = distEcuRes.data
-      if (distEcu?.distributivo?.items?.length > 0) {
-        distEcu.distributivo.items.forEach(item => {
-          idsEcuAsig.add(item.empleadoId)
-          const emp = { ...item.empleado, esEcu: true }
-          if (item.esJornadaEcu) {
-            nuevoJornada.push({ ...emp, esJornadaEcu: true })
-          } else {
-            const sg = item.empleado.grupoEcu || 'ECU_1'
-            if (nuevoEcu[sg]) nuevoEcu[sg].push(emp)
-          }
-        })
-      }
+const distEcu = distEcuRes.data
+if (distEcu?.distributivo?.items?.length > 0) {
+  distEcu.distributivo.items.forEach(item => {
+    // IMPORTANTE: agregar al set principal de asignados
+    idsAsignados.add(item.empleadoId)
+    const emp = { ...item.empleado, esEcu: true }
+    if (item.esJornadaEcu) {
+      nuevoJornada.push({ ...emp, esJornadaEcu: true })
+    } else {
+      const sg = item.empleado.grupoEcu || 'ECU_1'
+      if (nuevoEcu[sg]) nuevoEcu[sg].push(emp)
+    }
+  })
+}
 
       setAsignaciones(nuevasAsig)
       setZonaAdmin(nuevoAdmin)
@@ -425,52 +425,124 @@ if (distributivo?.items?.length > 0) {
     setActiveEmp(getEmp(parseInt(active.id)) || null)
   }
 
-  const handleDragEnd = ({ active, over }) => {
-    setActiveEmp(null)
-    if (!over || !puedeEditar) return
-    const empId  = parseInt(active.id)
-    const destId = over.id
-    const origen = encontrarZona(empId)
-    if (!origen || origen === destId) return
-    if (listaPersonal.find(e => e.id === empId && e.bloqueado)) return
+const handleDragOver = ({ active, over }) => {
+  if (!over || !puedeEditar) return
+  const empId  = parseInt(active.id)
+  const overId = over.id
 
-    let emp = null
+  const origenZona  = encontrarZona(empId)
+  if (!origenZona) return
 
-    if (origen === 'lista') {
-      emp = listaPersonal.find(e => e.id === empId)
-      setListaPersonal(p => p.filter(e => e.id !== empId))
-    } else if (origen.startsWith('est-')) {
-      const estId = parseInt(origen.replace('est-', ''))
-      emp = asignaciones[estId]?.find(e => e.id === empId)
-      setAsignaciones(p => ({ ...p, [estId]: p[estId].filter(e => e.id !== empId) }))
-    } else if (origen.startsWith('zona-ECU_')) {
-      const sg = origen.replace('zona-', '')
-      emp = (zonaEcu[sg] || []).find(e => e.id === empId)
-      setZonaEcu(p => ({ ...p, [sg]: p[sg].filter(e => e.id !== empId) }))
-    } else if (origen === 'zona-JORNADA-ECU') {
-      emp = jornadaEcu.find(e => e.id === empId)
-      setJornadaEcu(p => p.filter(e => e.id !== empId))
-    } else if (origen === 'zona-ADMIN') {
-      emp = zonaAdmin.find(e => e.id === empId)
-      setZonaAdmin(p => p.filter(e => e.id !== empId))
-    }
-    if (!emp) return
+  // Reordenar dentro de la misma estación
+  if (origenZona.startsWith('est-') && over.id.startsWith('est-')) return
+  if (!origenZona.startsWith('est-')) return
 
-    if (destId === 'lista') {
-      setListaPersonal(p => [...p, { ...emp, bloqueado: false }])
-    } else if (destId.startsWith('zona-ECU_')) {
-      const sg = destId.replace('zona-', '')
-      setZonaEcu(p => ({ ...p, [sg]: [...(p[sg]||[]), { ...emp, esEcu: true, grupoEcu: sg, esJornadaEcu: false }] }))
-    } else if (destId === 'zona-JORNADA-ECU') {
-      setJornadaEcu(p => [...p, { ...emp, esEcu: true, esJornadaEcu: true }])
-    } else if (destId === 'zona-ADMIN') {
-      setZonaAdmin(p => [...p, { ...emp, esAdmin: true }])
-    } else if (destId.startsWith('est-')) {
-      const estId = parseInt(destId.replace('est-', ''))
-      setAsignaciones(p => ({ ...p, [estId]: [...(p[estId]||[]), emp] }))
-    }
+  const estId  = parseInt(origenZona.replace('est-', ''))
+  const lista  = asignaciones[estId] || []
+
+  // El overId puede ser el id de un empleado (para reordenar)
+  const overEmpId = parseInt(overId)
+  if (isNaN(overEmpId)) return
+
+  const oldIdx = lista.findIndex(e => e.id === empId)
+  const newIdx = lista.findIndex(e => e.id === overEmpId)
+
+  if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return
+
+  setAsignaciones(p => ({
+    ...p,
+    [estId]: arrayMove(p[estId], oldIdx, newIdx)
+  }))
+}
+
+ const handleDragEnd = ({ active, over }) => {
+  setActiveEmp(null)
+  if (!puedeEditar) return
+  if (!over) return
+
+  const empId  = parseInt(active.id)
+  const destId = over.id
+  const origen = encontrarZona(empId)
+  if (!origen) return
+
+  // Si está bloqueado no mover
+  if (listaPersonal.find(e => e.id === empId && e.bloqueado)) return
+
+  // Si el destino es un empleado dentro de la misma estación — ya fue reordenado en dragOver
+  const destEsEmpleado = !isNaN(parseInt(destId))
+  if (destEsEmpleado) {
+    const destEmpZona = encontrarZona(parseInt(destId))
+    if (destEmpZona === origen) return // mismo contenedor — ya reordenado
   }
 
+  // Si origen y destino son el mismo contenedor — no hacer nada
+  if (origen === destId) return
+
+  // Obtener el empleado
+  let emp = null
+  if (origen === 'lista') {
+    emp = listaPersonal.find(e => e.id === empId)
+  } else if (origen.startsWith('est-')) {
+    const estId = parseInt(origen.replace('est-', ''))
+    emp = asignaciones[estId]?.find(e => e.id === empId)
+  } else if (origen.startsWith('zona-ECU_')) {
+    const sg = origen.replace('zona-', '')
+    emp = (zonaEcu[sg] || []).find(e => e.id === empId)
+  } else if (origen === 'zona-JORNADA-ECU') {
+    emp = jornadaEcu.find(e => e.id === empId)
+  } else if (origen === 'zona-ADMIN') {
+    emp = zonaAdmin.find(e => e.id === empId)
+  }
+
+  if (!emp) return
+
+  // Determinar zona destino real (si soltó sobre un empleado, usar su zona)
+  let zonaDestino = destId
+  if (destEsEmpleado) {
+    zonaDestino = encontrarZona(parseInt(destId)) || destId
+  }
+
+  // Quitar del origen
+  if (origen === 'lista') {
+    setListaPersonal(p => p.filter(e => e.id !== empId))
+  } else if (origen.startsWith('est-')) {
+    const estId = parseInt(origen.replace('est-', ''))
+    setAsignaciones(p => ({ ...p, [estId]: p[estId].filter(e => e.id !== empId) }))
+  } else if (origen.startsWith('zona-ECU_')) {
+    const sg = origen.replace('zona-', '')
+    setZonaEcu(p => ({ ...p, [sg]: p[sg].filter(e => e.id !== empId) }))
+  } else if (origen === 'zona-JORNADA-ECU') {
+    setJornadaEcu(p => p.filter(e => e.id !== empId))
+  } else if (origen === 'zona-ADMIN') {
+    setZonaAdmin(p => p.filter(e => e.id !== empId))
+  }
+
+  // Poner en destino
+  if (zonaDestino === 'lista') {
+    setListaPersonal(p => [...p, { ...emp, bloqueado: false }])
+  } else if (zonaDestino.startsWith('zona-ECU_')) {
+    const sg = zonaDestino.replace('zona-', '')
+    setZonaEcu(p => ({ ...p, [sg]: [...(p[sg]||[]), { ...emp, esEcu: true, grupoEcu: sg, esJornadaEcu: false }] }))
+  } else if (zonaDestino === 'zona-JORNADA-ECU') {
+    setJornadaEcu(p => [...p, { ...emp, esEcu: true, esJornadaEcu: true }])
+  } else if (zonaDestino === 'zona-ADMIN') {
+    setZonaAdmin(p => [...p, { ...emp, esAdmin: true }])
+  } else if (zonaDestino.startsWith('est-')) {
+    const estId = parseInt(zonaDestino.replace('est-', ''))
+    setAsignaciones(p => ({ ...p, [estId]: [...(p[estId]||[]), emp] }))
+  } else {
+    // Destino no reconocido — devolver al origen
+    if (origen === 'lista') setListaPersonal(p => [...p, emp])
+    else if (origen.startsWith('est-')) {
+      const estId = parseInt(origen.replace('est-', ''))
+      setAsignaciones(p => ({ ...p, [estId]: [...p[estId], emp] }))
+    } else if (origen.startsWith('zona-ECU_')) {
+      const sg = origen.replace('zona-', '')
+      setZonaEcu(p => ({ ...p, [sg]: [...p[sg], emp] }))
+    } else if (origen === 'zona-JORNADA-ECU') setJornadaEcu(p => [...p, emp])
+    else if (origen === 'zona-ADMIN') setZonaAdmin(p => [...p, emp])
+  }
+}
   const quitarDeEstacion = (empId, estId) => {
     const emp = asignaciones[estId]?.find(e => e.id === empId)
     if (!emp) return
@@ -571,7 +643,12 @@ if (distributivo?.items?.length > 0) {
       {error   && <Alert severity="error"   sx={{ mb:2 }}>{error}</Alert>}
       {!puedeEditar && <Alert severity="info" sx={{ mb:2 }}>Solo visualización</Alert>}
 
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DndContext
+  sensors={sensors}
+  onDragStart={handleDragStart}
+  onDragEnd={handleDragEnd}
+  onDragOver={handleDragOver}
+>
         <Box sx={{ display:'flex', gap:2, alignItems:'flex-start' }}>
 
           {/* Panel izquierdo */}

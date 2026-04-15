@@ -8,6 +8,8 @@ import Calendario  from './Calendario'
 import Empleados   from './Empleados'
 import Estaciones  from './Estaciones'
 import Distributivo from './Distributivo'
+import { NotificacionesProvider } from '../context/NotificacionesContext'
+import CampanaNotificaciones from '../components/CampanaNotificaciones'
 
 const MENU = [
   { label: 'Calendario',   vista: 'calendario',   icono: '📅' },
@@ -27,7 +29,8 @@ export default function Dashboard() {
   const ancho = colapsado ? SIDEBAR_COLAPSADO : SIDEBAR_ANCHO
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+  <NotificacionesProvider>
+  <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
       {/* Sidebar */}
       <Box sx={{
@@ -124,14 +127,15 @@ export default function Dashboard() {
       }}>
         {/* AppBar */}
         <Box sx={{
-          bgcolor: '#c62828', color: 'white',
-          px: 3, py: 1.5, flexShrink: 0,
-          display: 'flex', alignItems: 'center'
-        }}>
-          <Typography variant="h6">
-            {MENU.find(m => m.vista === vista)?.label || 'Sistema'}
-          </Typography>
-        </Box>
+  bgcolor: '#c62828', color: 'white',
+  px: 3, py: 1, flexShrink: 0,
+  display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+}}>
+  <Typography variant="h6">
+    {MENU.find(m => m.vista === vista)?.label || 'Sistema'}
+  </Typography>
+  <CampanaNotificaciones />
+</Box>
 
         {/* Vista activa — scroll independiente */}
         <Box sx={{
@@ -147,5 +151,8 @@ export default function Dashboard() {
         </Box>
       </Box>
     </Box>
+  
+  </NotificacionesProvider>
+
   )
 }
