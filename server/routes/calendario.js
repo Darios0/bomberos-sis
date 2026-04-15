@@ -6,7 +6,6 @@ const {
 } = require('../utils/turnos')
 const router = express.Router()
 
-// GET /api/calendario/:fecha
 router.get('/:fecha', async (req, res) => {
   try {
     const { fecha } = req.params
@@ -15,28 +14,31 @@ router.get('/:fecha', async (req, res) => {
     const grupoOperativo = getGrupoOperativoPorFecha(fechaDate)
     const resumenEcu     = getResumenEcuPorFecha(fechaDate)
 
-    // Personal operativo del grupo de turno
-    const personalOperativo = await prisma.empleado.findMany({
-      where: {
-        tipoPersonal:   'OPERATIVO',
-        grupoOperativo: grupoOperativo,
-        activo:         true
-      },
-      include: { estacion: { select: { id: true, nombre: true } } },
-      orderBy: { nombre: 'asc' }
+    // Buscar distributivo del mes para esa fecha
+    const mes  = fechaDate.getUTCMonth() + 1
+    const anio = fechaDate.getUTCFullYear()
+
+    const distributivo = await prisma.distributivo.findFirst({
+      where: { mes, anio, grupo: grupoOperativo, esEcu: false },
+      include: {
+        items: {
+          orderBy: { orden: 'asc' },
+          include: {
+            empleado: true,
+            estacion: true
+          }
+        }
+      }
     })
 
-    // Personal ECU por grupo con sus turnos
-    const personalEcu = await prisma.empleado.findMany({
-      where: { tipoPersonal: 'ECU', activo: true },
-      orderBy: { grupoEcu: 'asc' }
-    })
-
-    // Personal administrativo
-    const personalAdmin = await prisma.empleado.findMany({
-      where:   { tipoPersonal: 'ADMINISTRATIVO', activo: true },
-      include: { estacion: { select: { id: true, nombre: true } } },
-      orderBy: { nombre: 'asc' }
+    const distributivoEcu = await prisma.distributivo.findFirst({
+      where: { mes, anio, esEcu: true },
+      include: {
+        items: {
+          orderBy: { orden: 'asc' },
+          include: { empleado: true }
+        }
+      }
     })
 
     // Ausencias activas ese día
@@ -50,46 +52,65 @@ router.get('/:fecha', async (req, res) => {
       }
     })
 
-    const idsAusentes = ausencias.map(a => a.empleadoId)
+    const idsAusentes = new Set(ausencias.map(a => a.empleadoId))
 
-    // Marcar ausentes en operativo
-    const operativoConEstado = personalOperativo.map(emp => ({
-      ...emp,
-      ausente:     idsAusentes.includes(emp.id),
-      ausenciaInfo: ausencias.find(a => a.empleadoId === emp.id) || null
-    }))
-
-    // Agrupar operativos por estación
-    const porEstacion = {}
-    operativoConEstado.forEach(emp => {
-      const key    = emp.estacion?.nombre || 'Sin estación'
-      const estId  = emp.estacion?.id     || 0
-      if (!porEstacion[key]) porEstacion[key] = { estacionId: estId, nombre: key, personal: [] }
-      porEstacion[key].personal.push(emp)
+    // Agrupar por estación desde el distributivo
+    const estaciones = await prisma.estacion.findMany({
+      orderBy: { id: 'asc' }
     })
 
-    // ECU con estado
-    const ecuConEstado = personalEcu.map(emp => ({
-      ...emp,
-      turnos:  resumenEcu[emp.grupoEcu] || ['Libre'],
-      ausente: idsAusentes.includes(emp.id)
-    }))
+    const porEstacion = estaciones.map(est => {
+      const itemsEst = distributivo?.items?.filter(i => i.estacionId === est.id) || []
+      const operativos = itemsEst
+        .filter(i => !i.esAdmin)
+        .map(i => ({
+          ...i.empleado,
+          ausente:      idsAusentes.has(i.empleado.id),
+          ausenciaInfo: ausencias.find(a => a.empleadoId === i.empleado.id) || null
+        }))
+      const administrativos = itemsEst
+        .filter(i => i.esAdmin)
+        .map(i => ({
+          ...i.empleado,
+          ausente:      idsAusentes.has(i.empleado.id),
+          ausenciaInfo: ausencias.find(a => a.empleadoId === i.empleado.id) || null
+        }))
+      return {
+        id:             est.id,
+        nombre:         est.nombre,
+        operativos,
+        administrativos,
+        total:          operativos.length + administrativos.length
+      }
+    })
 
-    // Admin con estado
-    const adminConEstado = personalAdmin.map(emp => ({
-      ...emp,
-      ausente: idsAusentes.includes(emp.id)
-    }))
+    // ECU
+    const personalEcu = distributivoEcu?.items?.map(i => ({
+      ...i.empleado,
+      esJornadaEcu: i.esJornadaEcu,
+      ausente:      idsAusentes.has(i.empleado.id),
+      ausenciaInfo: ausencias.find(a => a.empleadoId === i.empleado.id) || null
+    })) || []
+
+    // Operativos administrativos (sin estación asignada en el distributivo)
+    const operativosAdmin = distributivo?.items
+      ?.filter(i => i.esAdmin && !i.estacionId)
+      ?.map(i => ({
+        ...i.empleado,
+        ausente:      idsAusentes.has(i.empleado.id),
+        ausenciaInfo: ausencias.find(a => a.empleadoId === i.empleado.id) || null
+      })) || []
 
     res.json({
       fecha,
       grupoOperativo,
       resumenEcu,
-      porEstacion:        Object.values(porEstacion),
-      personalEcu:        ecuConEstado,
-      personalAdmin:      adminConEstado,
-      totalAusentes:      idsAusentes.length,
-      ausencias
+      porEstacion,
+      personalEcu,
+      operativosAdmin,
+      ausencias,
+      totalAusentes:     idsAusentes.size,
+      distributivoExiste: !!distributivo
     })
   } catch (error) {
     console.error(error)

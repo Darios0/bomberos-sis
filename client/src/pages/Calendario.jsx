@@ -5,11 +5,15 @@ import interactionPlugin from '@fullcalendar/interaction'
 import api from '../api/axios'
 import {
   Box, Card, CardContent, Chip, CircularProgress,
-  Divider, Grid, Typography, Alert
+  Divider, Typography, Alert, Collapse, IconButton
 } from '@mui/material'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 
 const COLOR_GRUPO = {
-  GRUPO_1: '#c62828', GRUPO_2: '#1565c0', GRUPO_3: '#2e7d32'
+  GRUPO_1: { bg: '#c62828', label: 'Grupo 1' },
+  GRUPO_2: { bg: '#1565c0', label: 'Grupo 2' },
+  GRUPO_3: { bg: '#2e7d32', label: 'Grupo 3' }
 }
 
 const COLOR_ECU_TURNO = {
@@ -19,6 +23,120 @@ const COLOR_ECU_TURNO = {
   '21h00-07h00':    '#4a148c'
 }
 
+const COLOR_AUSENCIA = {
+  VACACIONES: '#f57c00',
+  ENFERMEDAD: '#d32f2f',
+  PERMISO:    '#0288d1',
+  FALTA:      '#7b1fa2',
+  ATRASO:     '#455a64'
+}
+
+// ── Tarjeta de persona ─────────────────────────────────────────
+function TarjetaPersona({ emp, esAdmin }) {
+  return (
+    <Box sx={{
+      display: 'flex', justifyContent: 'space-between',
+      alignItems: 'center', py: 0.4, px: 0.5,
+      borderRadius: 0.5,
+      bgcolor: emp.ausente ? '#fff3e0' : esAdmin ? '#e3f2fd' : 'transparent',
+      mb: 0.3
+    }}>
+      <Box>
+        <Typography variant="caption" display="block"
+          sx={{ fontWeight: emp.ausente ? 400 : 500, color: emp.ausente ? 'text.disabled' : 'text.primary' }}>
+          {emp.nombre}
+          {esAdmin && (
+            <Chip label="Adm." size="small"
+              sx={{ ml: 0.5, fontSize: 9, height: 14, bgcolor: '#bbdefb', color: '#0d47a1' }} />
+          )}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" fontSize={10}>
+          {emp.rango}
+        </Typography>
+      </Box>
+      {emp.ausente && emp.ausenciaInfo && (
+        <Chip
+          label={emp.ausenciaInfo.tipo}
+          size="small"
+          sx={{
+            fontSize: 9, height: 16,
+            bgcolor: COLOR_AUSENCIA[emp.ausenciaInfo.tipo] || '#9e9e9e',
+            color: 'white'
+          }}
+        />
+      )}
+      {!emp.ausente && (
+        <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'success.main' }} />
+      )}
+    </Box>
+  )
+}
+
+// ── Card de estación ───────────────────────────────────────────
+function CardEstacion({ estacion }) {
+  const [expandida, setExpandida] = useState(true)
+  const totalAusentes = [
+    ...estacion.operativos,
+    ...estacion.administrativos
+  ].filter(e => e.ausente).length
+
+  const sinPersonal = estacion.operativos.length === 0 && estacion.administrativos.length === 0
+
+  return (
+    <Card sx={{
+      mb: 1, border: '1px solid',
+      borderColor: totalAusentes > 0 ? 'warning.light' : 'divider',
+      bgcolor: sinPersonal ? '#fafafa' : 'white'
+    }}>
+      <Box sx={{
+        display: 'flex', justifyContent: 'space-between',
+        alignItems: 'center', px: 1.5, py: 0.75,
+        bgcolor: '#f5f5f5', borderBottom: expandida ? '1px solid #e0e0e0' : 'none',
+        cursor: 'pointer'
+      }}
+        onClick={() => setExpandida(e => !e)}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="caption" fontWeight="bold" textTransform="uppercase" fontSize={11}>
+            {estacion.nombre}
+          </Typography>
+          <Chip label={estacion.total} size="small"
+            sx={{ height: 16, fontSize: 9 }} />
+          {totalAusentes > 0 && (
+            <Chip label={`${totalAusentes} ausente${totalAusentes > 1 ? 's' : ''}`}
+              size="small" color="warning" sx={{ height: 16, fontSize: 9 }} />
+          )}
+        </Box>
+        <IconButton size="small" sx={{ p: 0 }}>
+          {expandida ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+        </IconButton>
+      </Box>
+
+      <Collapse in={expandida}>
+        <CardContent sx={{ py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
+          {sinPersonal && (
+            <Typography variant="caption" color="text.disabled" fontSize={10}>
+              Sin personal asignado este mes
+            </Typography>
+          )}
+          {estacion.operativos.map(emp => (
+            <TarjetaPersona key={emp.id} emp={emp} esAdmin={false} />
+          ))}
+          {estacion.administrativos.length > 0 && (
+            <>
+              {estacion.operativos.length > 0 && <Divider sx={{ my: 0.5 }} />}
+              {estacion.administrativos.map(emp => (
+                <TarjetaPersona key={emp.id} emp={emp} esAdmin={true} />
+              ))}
+            </>
+          )}
+        </CardContent>
+      </Collapse>
+    </Card>
+  )
+}
+
+// ── Principal ──────────────────────────────────────────────────
 export default function Calendario() {
   const [diaSeleccionado, setDiaSeleccionado] = useState(null)
   const [datos, setDatos]                     = useState(null)
@@ -44,14 +162,17 @@ export default function Calendario() {
   const formatearFecha = (fecha) => {
     if (!fecha) return ''
     const [y, m, d] = fecha.split('-')
-    return `${d}/${m}/${y}`
+    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+    return `${d} de ${meses[parseInt(m)-1]} ${y}`
   }
+
+  const grupoInfo = datos ? COLOR_GRUPO[datos.grupoOperativo] : null
 
   return (
     <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
 
-      {/* Calendario izquierda */}
-      <Box sx={{ width: 520, flexShrink: 0 }}>
+      {/* Calendario */}
+      <Box sx={{ width: 480, flexShrink: 0 }}>
         <FullCalendar
           plugins={[dayGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
@@ -62,23 +183,40 @@ export default function Calendario() {
             center: 'title',
             right:  ''
           }}
-          height={520}
-          dayCellClassNames={(arg) => {
-            return arg.dateStr === diaSeleccionado ? ['dia-seleccionado'] : []
-          }}
+          height={480}
+          dayCellClassNames={(arg) =>
+            arg.dateStr === diaSeleccionado ? ['dia-seleccionado'] : []
+          }
         />
         <style>{`
-          .dia-seleccionado { background-color: #fff3e0 !important; }
+          .dia-seleccionado a, .dia-seleccionado { background-color: #fff3e0 !important; }
           .fc-day:hover { background-color: #f5f5f5; cursor: pointer; }
+          .fc-button { background-color: #c62828 !important; border-color: #c62828 !important; }
+          .fc-button:hover { background-color: #b71c1c !important; }
         `}</style>
+
+        {/* Leyenda */}
+        {datos && (
+          <Box sx={{ mt: 2, p: 1.5, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+            <Typography variant="caption" fontWeight="bold" display="block" mb={0.5}>
+              Leyenda de ausencias
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {Object.entries(COLOR_AUSENCIA).map(([tipo, color]) => (
+                <Chip key={tipo} label={tipo} size="small"
+                  sx={{ bgcolor: color, color: 'white', fontSize: 10, height: 18 }} />
+              ))}
+            </Box>
+          </Box>
+        )}
       </Box>
 
-      {/* Panel derecha */}
-      <Box sx={{ flex: 1, overflowY: 'auto' }}>
+      {/* Panel detalle */}
+      <Box sx={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
         {!diaSeleccionado && (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 400 }}>
             <Typography color="text.secondary">
-              Selecciona un día en el calendario para ver el detalle
+              Selecciona un día para ver el detalle
             </Typography>
           </Box>
         )}
@@ -94,146 +232,148 @@ export default function Calendario() {
         {datos && !cargando && (
           <Box>
             {/* Encabezado del día */}
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="h6" fontWeight="bold">
+            <Box sx={{ mb: 2, p: 1.5, bgcolor: grupoInfo?.bg || '#9e9e9e', borderRadius: 1 }}>
+              <Typography variant="h6" color="white" fontWeight="bold">
                 {formatearFecha(datos.fecha)}
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Chip
-                  label={`Operativo: ${datos.grupoOperativo.replace('_', ' ')}`}
-                  sx={{ bgcolor: COLOR_GRUPO[datos.grupoOperativo], color: 'white', fontWeight: 'bold' }}
+                  label={grupoInfo?.label || datos.grupoOperativo}
+                  sx={{ bgcolor: 'rgba(255,255,255,0.3)', color: 'white', fontWeight: 'bold' }}
+                  size="small"
                 />
                 {datos.totalAusentes > 0 && (
                   <Chip
-                    label={`${datos.totalAusentes} ausente(s)`}
-                    color="warning"
-                    variant="outlined"
+                    label={`${datos.totalAusentes} ausente${datos.totalAusentes > 1 ? 's' : ''}`}
+                    sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                    size="small"
+                  />
+                )}
+                {!datos.distributivoExiste && (
+                  <Chip
+                    label="Sin distributivo este mes"
+                    sx={{ bgcolor: 'rgba(0,0,0,0.2)', color: 'white' }}
+                    size="small"
                   />
                 )}
               </Box>
             </Box>
 
+            {/* Advertencia si no hay distributivo */}
+            {!datos.distributivoExiste && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                No hay distributivo publicado para este mes. El personal que se muestra es el asignado en el último distributivo disponible.
+              </Alert>
+            )}
+
             {/* ECU */}
-            <Card sx={{ mb: 2 }}>
-              <CardContent>
-                <Typography variant="subtitle1" fontWeight="bold" mb={1}>
-                  ECU — Central de Radio
+            <Card sx={{ mb: 2, border: '1px solid #f57c00' }}>
+              <Box sx={{ px: 1.5, py: 0.75, bgcolor: '#fff8e1' }}>
+                <Typography variant="caption" fontWeight="bold" color="#e65100" textTransform="uppercase">
+                  Central ECU — 911
                 </Typography>
-                <Grid container spacing={1}>
-                  {datos.personalEcu.map(emp => (
-                    <Grid item xs={6} key={emp.id}>
-                      <Box sx={{
-                        p: 1, borderRadius: 1,
-                        bgcolor: emp.ausente ? '#fff3e0' : '#f5f5f5',
-                        border: '1px solid #e0e0e0'
+              </Box>
+              <CardContent sx={{ py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
+
+                {/* Jornada ordinaria */}
+                {datos.personalEcu.filter(e => e.esJornadaEcu).length > 0 && (
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="caption" color="#6a1b9a" fontWeight="bold" display="block" mb={0.5}>
+                      Jornada Ordinaria
+                    </Typography>
+                    {datos.personalEcu.filter(e => e.esJornadaEcu).map(emp => (
+                      <TarjetaPersona key={emp.id} emp={emp} esAdmin={false} />
+                    ))}
+                    <Divider sx={{ mt: 0.5 }} />
+                  </Box>
+                )}
+
+                {/* Grupos rotativos ECU */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1 }}>
+                  {['ECU_1','ECU_2','ECU_3','ECU_4'].map(sg => {
+                    const turnos  = datos.resumenEcu[sg] || ['Libre']
+                    const personal = datos.personalEcu.filter(e => !e.esJornadaEcu && e.grupoEcu === sg)
+                    const libre   = turnos[0] === 'Libre'
+                    return (
+                      <Box key={sg} sx={{
+                        p: 0.75, borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: libre ? '#e0e0e0' : '#f57c00',
+                        bgcolor: libre ? '#fafafa' : '#fff8e1'
                       }}>
-                        <Typography variant="body2" fontWeight="bold">
-                          {emp.nombre}
-                          {emp.ausente && (
-                            <Chip label="Ausente" size="small" color="warning" sx={{ ml: 1 }} />
-                          )}
+                        <Typography variant="caption" fontWeight="bold" display="block"
+                          color={libre ? 'text.disabled' : '#e65100'} fontSize={10}>
+                          {sg.replace('_',' ')}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {emp.grupoEcu?.replace('_', ' ')} — {emp.rango}
-                        </Typography>
-                        <Box sx={{ mt: 0.5, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                          {emp.turnos.map(t => (
-                            <Chip
-                              key={t} label={t} size="small"
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.3, mb: 0.5 }}>
+                          {turnos.map(t => (
+                            <Chip key={t} label={t} size="small"
                               sx={{
+                                fontSize: 9, height: 14,
                                 bgcolor: COLOR_ECU_TURNO[t] || '#9e9e9e',
-                                color: 'white', fontSize: 10
+                                color: 'white'
                               }}
                             />
                           ))}
                         </Box>
+                        {personal.map(emp => (
+                          <TarjetaPersona key={emp.id} emp={emp} esAdmin={false} />
+                        ))}
+                        {personal.length === 0 && (
+                          <Typography variant="caption" color="text.disabled" fontSize={9}>
+                            Sin asignar
+                          </Typography>
+                        )}
                       </Box>
-                    </Grid>
-                  ))}
-                </Grid>
+                    )
+                  })}
+                </Box>
               </CardContent>
             </Card>
 
-            {/* Personal por estación */}
-            <Typography variant="subtitle1" fontWeight="bold" mb={1}>
-              Personal operativo por estación
+            {/* Estaciones X1-X4 */}
+            <Typography variant="caption" color="text.secondary" fontWeight="bold"
+              display="block" mb={0.5} textTransform="uppercase">
+              Compañías X1 — X4
             </Typography>
-            {datos.porEstacion.length === 0 && (
-              <Alert severity="info">No hay personal asignado a estaciones para este grupo</Alert>
-            )}
-            {datos.porEstacion.map(est => (
-              <Card key={est.nombre} sx={{ mb: 1.5 }}>
-                <CardContent sx={{ pb: '12px !important' }}>
-                  <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" mb={1}>
-                    {est.nombre}
-                  </Typography>
-                  {est.personal.map(emp => (
-                    <Box key={emp.id} sx={{
-                      display: 'flex', justifyContent: 'space-between',
-                      alignItems: 'center', py: 0.5,
-                      opacity: emp.ausente ? 0.6 : 1
-                    }}>
-                      <Box>
-                        <Typography variant="body2">
-                          {emp.nombre}
-                          {emp.ausente && (
-                            <Chip
-                              label={emp.ausenciaInfo?.tipo || 'Ausente'}
-                              size="small" color="warning"
-                              sx={{ ml: 1, fontSize: 10 }}
-                            />
-                          )}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {emp.rango}
-                        </Typography>
-                      </Box>
-                      <Chip
-                        label={emp.ausente ? 'No disponible' : 'Disponible'}
-                        size="small"
-                        color={emp.ausente ? 'warning' : 'success'}
-                        variant="outlined"
-                      />
-                    </Box>
-                  ))}
-                  {est.personal.length === 0 && (
-                    <Typography variant="caption" color="text.secondary">
-                      Sin personal asignado
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, mb: 1.5 }}>
+              {datos.porEstacion.slice(0,4).map(est => (
+                <CardEstacion key={est.id} estacion={est} />
+              ))}
+            </Box>
 
-            {/* Administrativos */}
-            {datos.personalAdmin.length > 0 && (
+            {/* Estaciones X5-X8 */}
+            <Typography variant="caption" color="text.secondary" fontWeight="bold"
+              display="block" mb={0.5} textTransform="uppercase">
+              Compañías X5 — X8
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, mb: 1.5 }}>
+              {datos.porEstacion.slice(4,8).map(est => (
+                <CardEstacion key={est.id} estacion={est} />
+              ))}
+            </Box>
+
+            {/* Operativos en horario administrativo */}
+            {datos.operativosAdmin.length > 0 && (
               <>
-                <Divider sx={{ my: 2 }} />
-                <Typography variant="subtitle1" fontWeight="bold" mb={1}>
-                  Personal administrativo
+                <Typography variant="caption" color="info.main" fontWeight="bold"
+                  display="block" mb={0.5} textTransform="uppercase">
+                  Operativos horario administrativo
                 </Typography>
-                {datos.personalAdmin.map(emp => (
-                  <Box key={emp.id} sx={{
-                    display: 'flex', justifyContent: 'space-between',
-                    alignItems: 'center', py: 0.5, px: 1,
-                    bgcolor: '#f5f5f5', borderRadius: 1, mb: 0.5
-                  }}>
-                    <Box>
-                      <Typography variant="body2">{emp.nombre}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {emp.rango} — {emp.estacion?.nombre || 'Sin estación'}
-                      </Typography>
+                <Card sx={{ mb: 1.5, border: '1px solid', borderColor: 'info.light' }}>
+                  <CardContent sx={{ py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {datos.operativosAdmin.map(emp => (
+                        <Box key={emp.id} sx={{ minWidth: 150 }}>
+                          <TarjetaPersona emp={emp} esAdmin={true} />
+                        </Box>
+                      ))}
                     </Box>
-                    <Chip
-                      label={emp.ausente ? 'Ausente' : 'Activo'}
-                      size="small"
-                      color={emp.ausente ? 'warning' : 'info'}
-                      variant="outlined"
-                    />
-                  </Box>
-                ))}
+                  </CardContent>
+                </Card>
               </>
             )}
+
           </Box>
         )}
       </Box>
