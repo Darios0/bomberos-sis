@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import api from '../api/axios'
+import { usePermisos } from '../hooks/usePermisos'
 import {
   Box, Button, Dialog, DialogActions, DialogContent,
   DialogTitle, Paper, Table, TableBody, TableCell,
@@ -16,6 +17,7 @@ export default function Estaciones() {
   const [form, setForm]             = useState(INICIAL)
   const [editando, setEditando]     = useState(null)
   const [error, setError]           = useState('')
+  const { puedeGestionarEstaciones } = usePermisos()
 
   const cargar = async () => {
     try {
@@ -67,6 +69,17 @@ export default function Estaciones() {
     }
   }
 
+  // 🔴 NUEVA FUNCIÓN ELIMINAR
+  const eliminar = async (est) => {
+  if (!confirm(`¿Eliminar "${est.nombre}"? Esta acción no se puede deshacer.`)) return
+  try {
+    await api.delete(`/estaciones/${est.id}`)
+    cargar()
+  } catch (err) {
+    setError(err.response?.data?.error || 'Error al eliminar estación')
+  }
+}
+
   if (cargando) return <Box sx={{ p: 4 }}><CircularProgress /></Box>
 
   return (
@@ -75,10 +88,15 @@ export default function Estaciones() {
         <Typography variant="h5" fontWeight="bold">
           Estaciones — {estaciones.length} registradas
         </Typography>
-        <Button variant="contained" sx={{ bgcolor: '#c62828' }} onClick={abrirCrear}>
-          + Nueva estación
-        </Button>
+
+        {puedeGestionarEstaciones && (
+          <Button variant="contained" sx={{ bgcolor: '#c62828' }} onClick={abrirCrear}>
+            + Nueva estación
+          </Button>
+        )}
       </Box>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <TableContainer component={Paper}>
         <Table>
@@ -90,6 +108,7 @@ export default function Estaciones() {
               <TableCell><b>Acciones</b></TableCell>
             </TableRow>
           </TableHead>
+
           <TableBody>
             {estaciones.map((est, i) => (
               <TableRow key={est.id} hover>
@@ -97,12 +116,20 @@ export default function Estaciones() {
                 <TableCell>{est.nombre}</TableCell>
                 <TableCell>{est.direccion || '—'}</TableCell>
                 <TableCell>
-                  <Button size="small" onClick={() => abrirEditar(est)}>
-                    Editar
-                  </Button>
-                </TableCell>
+  {puedeGestionarEstaciones && (
+    <>
+      <Button size="small" onClick={() => abrirEditar(est)}>
+        Editar
+      </Button>
+      <Button size="small" color="error" onClick={() => eliminar(est)}>
+        Eliminar
+      </Button>
+    </>
+  )}
+</TableCell>
               </TableRow>
             ))}
+
             {estaciones.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} align="center" sx={{ py: 3, color: 'text.secondary' }}>
@@ -115,25 +142,37 @@ export default function Estaciones() {
       </TableContainer>
 
       <Dialog open={dialogo} onClose={cerrar} fullWidth maxWidth="sm">
-        <DialogTitle>{editando ? 'Editar estación' : 'Nueva estación'}</DialogTitle>
+        <DialogTitle>
+          {editando ? 'Editar estación' : 'Nueva estación'}
+        </DialogTitle>
+
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
           <TextField
             label="Nombre de la estación"
-            fullWidth margin="normal"
+            fullWidth
+            margin="normal"
             value={form.nombre}
             onChange={e => setForm({ ...form, nombre: e.target.value })}
           />
+
           <TextField
             label="Dirección"
-            fullWidth margin="normal"
+            fullWidth
+            margin="normal"
             value={form.direccion}
             onChange={e => setForm({ ...form, direccion: e.target.value })}
           />
         </DialogContent>
+
         <DialogActions>
           <Button onClick={cerrar}>Cancelar</Button>
-          <Button variant="contained" sx={{ bgcolor: '#c62828' }} onClick={guardar}>
+          <Button
+            variant="contained"
+            sx={{ bgcolor: '#c62828' }}
+            onClick={guardar}
+          >
             {editando ? 'Guardar cambios' : 'Crear estación'}
           </Button>
         </DialogActions>

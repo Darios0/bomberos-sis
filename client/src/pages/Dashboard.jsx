@@ -10,12 +10,14 @@ import Estaciones  from './Estaciones'
 import Distributivo from './Distributivo'
 import { NotificacionesProvider } from '../context/NotificacionesContext'
 import CampanaNotificaciones from '../components/CampanaNotificaciones'
+import Usuarios from './Usuarios'
 
 const MENU = [
-  { label: 'Calendario',   vista: 'calendario',   icono: '📅' },
-  { label: 'Distributivo', vista: 'distributivo',  icono: '📋' },
-  { label: 'Personal',     vista: 'empleados',     icono: '👨‍🚒' },
-  { label: 'Estaciones',   vista: 'estaciones',    icono: '🏠' },
+  { label: 'Calendario',   vista: 'calendario',   icono: '📅', roles: null },
+  { label: 'Distributivo', vista: 'distributivo',  icono: '📋', roles: null },
+  { label: 'Personal',     vista: 'empleados',     icono: '👨‍🚒', roles: ['ADMIN', 'OPERADOR', 'EVALUADOR'] },
+  { label: 'Estaciones',   vista: 'estaciones',    icono: '🏠', roles: ['ADMIN'] },
+  { label: 'Usuarios',     vista: 'usuarios',      icono: '👤', roles: ['ADMIN'] },
 ]
 
 const SIDEBAR_ANCHO    = 200
@@ -23,7 +25,11 @@ const SIDEBAR_COLAPSADO = 56
 
 export default function Dashboard() {
   const { usuario, logout } = useAuth()
-  const [vista, setVista]         = useState('calendario')
+ const vistaInicial = () => {
+  if (!usuario) return 'calendario'
+  return 'calendario'
+}
+const [vista, setVista] = useState(vistaInicial)
   const [colapsado, setColapsado] = useState(false)
 
   const ancho = colapsado ? SIDEBAR_COLAPSADO : SIDEBAR_ANCHO
@@ -72,8 +78,8 @@ export default function Dashboard() {
 
         {/* Menú */}
         <List sx={{ flex: 1, pt: 0 }}>
-          {MENU.map(item => (
-            <ListItem key={item.vista} disablePadding>
+          {MENU.filter(item => !item.roles || item.roles.includes(usuario?.rol)).map(item => (
+  <ListItem key={item.vista} disablePadding>
               <Tooltip title={colapsado ? item.label : ''} placement="right">
                 <ListItemButton
                   selected={vista === item.vista}
@@ -148,6 +154,7 @@ export default function Dashboard() {
           {vista === 'distributivo' && <Distributivo />}
           {vista === 'empleados'    && <Empleados />}
           {vista === 'estaciones'   && <Estaciones />}
+          {vista === 'usuarios' && <Usuarios />}
         </Box>
       </Box>
     </Box>

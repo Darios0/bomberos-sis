@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import api from '../api/axios'
+import { usePermisos } from '../hooks/usePermisos'
 import {
   Box, Button, Chip, Dialog, DialogActions, DialogContent,
   DialogTitle, Divider, FormControl, InputLabel, MenuItem,
@@ -22,6 +23,7 @@ export default function EmpleadoDetalle({ empleado, onCerrar, onActualizar }) {
   const [dialogoAus, setDialogoAus] = useState(false)
   const [dialogoEval, setDialogoEval] = useState(false)
   const [error, setError]           = useState('')
+  const { puedeRegistrarAusencias, puedeGestionarPersonal } = usePermisos()
 
   const [formAus, setFormAus] = useState({
     tipo: 'PERMISO', fechaInicio: '', fechaFin: '',
@@ -138,14 +140,12 @@ const cargar = async () => {
         {tab === 0 && (
           <Box>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button
-                variant="contained"
-                size="small"
-                sx={{ bgcolor: '#c62828' }}
-                onClick={() => { setError(''); setDialogoAus(true) }}
-              >
-                + Registrar
-              </Button>
+            {puedeRegistrarAusencias && (
+  <Button variant="contained" size="small" sx={{ bgcolor: '#c62828' }}
+    onClick={() => { setError(''); setDialogoAus(true) }}>
+    + Registrar
+  </Button>
+)}
             </Box>
             {ausencias.length === 0 && (
               <Typography color="text.secondary" textAlign="center" py={3}>
@@ -179,9 +179,11 @@ const cargar = async () => {
                         <Typography variant="caption" color="text.secondary">{a.descripcion}</Typography>
                       )}
                     </Box>
-                    <Button size="small" color="error" onClick={() => eliminarAusencia(a.id)}>
-                      Eliminar
-                    </Button>
+                    {puedeRegistrarAusencias && (
+  <Button size="small" color="error" onClick={() => eliminarAusencia(a.id)}>
+    Eliminar
+  </Button>
+)}
                   </Box>
                 </Box>
               )
@@ -193,14 +195,12 @@ const cargar = async () => {
         {tab === 1 && (
           <Box>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button
-                variant="contained"
-                size="small"
-                sx={{ bgcolor: '#c62828' }}
-                onClick={() => { setError(''); setDialogoEval(true) }}
-              >
-                + Registrar
-              </Button>
+           {puedeRegistrarAusencias && (
+  <Button variant="contained" size="small" sx={{ bgcolor: '#c62828' }}
+    onClick={() => { setError(''); setDialogoEval(true) }}>
+    + Registrar
+  </Button>
+)}
             </Box>
             {evaluaciones.length === 0 && (
               <Typography color="text.secondary" textAlign="center" py={3}>
@@ -227,9 +227,11 @@ const cargar = async () => {
                       {new Date(ev.fecha).toLocaleDateString('es-EC')}
                     </Typography>
                   </Box>
+                  {puedeRegistrarAusencias && (
                   <Button size="small" color="error" onClick={() => eliminarEval(ev.id)}>
                     Eliminar
                   </Button>
+                  )}
                 </Box>
               </Box>
             ))}
@@ -392,6 +394,7 @@ const cargar = async () => {
             onChange={e => setFormAus({ ...formAus, descripcion: e.target.value })}
           />
         </DialogContent>
+
         <DialogActions>
           <Button onClick={() => setDialogoAus(false)}>Cancelar</Button>
           <Button variant="contained" sx={{ bgcolor: '#c62828' }} onClick={guardarAusencia}>

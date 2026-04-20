@@ -38,5 +38,20 @@ router.put('/:id', async (req, res) => {
     res.status(500).json({ error: 'Error al actualizar estación' })
   }
 })
+router.delete('/:id', async (req, res) => {
+  try {
+    await prisma.estacion.delete({
+      where: { id: parseInt(req.params.id) }
+    })
+    res.json({ mensaje: 'Estación eliminada' })
+  } catch (error) {
+    if (error.code === 'P2003') {
+      return res.status(400).json({
+        error: 'No se puede eliminar — hay personal o asignaciones vinculadas a esta estación'
+      })
+    }
+    res.status(500).json({ error: 'Error al eliminar estación' })
+  }
+})
 
 module.exports = router

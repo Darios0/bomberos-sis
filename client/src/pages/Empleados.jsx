@@ -7,6 +7,7 @@ import {
   TableHead, TableRow, TextField, Typography, Alert, Tabs, Tab
 } from '@mui/material'
 import EmpleadoDetalle from './EmpleadoDetalle'
+import { usePermisos } from '../hooks/usePermisos'
 
 const RANGOS = [
   'Bombero', 'Suboficial', 'Cabo', 'Sargento', 'Subteniente',
@@ -28,6 +29,8 @@ const COLOR_GRUPO = {
   ECU_1: 'warning', ECU_2: 'warning', ECU_3: 'warning', ECU_4: 'warning'
 }
 
+
+
 export default function Empleados() {
   const [empleados, setEmpleados]   = useState([])
   const [estaciones, setEstaciones] = useState([])
@@ -39,7 +42,9 @@ export default function Empleados() {
   const [busqueda, setBusqueda]     = useState('')
   const [empleadoDetalle, setEmpleadoDetalle] = useState(null)
   const [tabActual, setTabActual]   = useState(0)
+  const { puedeGestionarPersonal, puedeRegistrarAusencias } = usePermisos()
 
+  
   const cargar = async () => {
     try {
       const [empRes, estRes] = await Promise.all([
@@ -154,9 +159,11 @@ export default function Empleados() {
         <Typography variant="h5" fontWeight="bold">
           Personal — {empleados.length} registrados
         </Typography>
-        <Button variant="contained" sx={{ bgcolor: '#c62828' }} onClick={abrirCrear}>
-          + Nuevo empleado
-        </Button>
+      {puedeGestionarPersonal && (
+  <Button variant="contained" sx={{ bgcolor: '#c62828' }} onClick={abrirCrear}>
+    + Nuevo empleado
+  </Button>
+)}
       </Box>
 
       <TextField
@@ -215,19 +222,22 @@ export default function Empleados() {
                   />
                 </TableCell>
                 <TableCell>
-  <Button size="small" onClick={() => abrirEditar(emp)}>Editar</Button>
-  <Button size="small" color="info" onClick={() => setEmpleadoDetalle(emp)}>
-    Detalle
-  </Button>
-  {emp.activo ? (
-    <Button size="small" color="error" onClick={() => desactivar(emp.id)}>
-      Desactivar
-    </Button>
-  ) : (
-    <Button size="small" color="success" onClick={() => activar(emp.id)}>
-      Activar
-    </Button>
-  )}
+                    {puedeGestionarPersonal && (
+                      <Button size="small" onClick={() => abrirEditar(emp)}>Editar</Button>
+                    )}
+                    <Button size="small" color="info" onClick={() => setEmpleadoDetalle(emp)}>
+                      {puedeRegistrarAusencias ? 'Detalle' : 'Ver'}
+                    </Button>
+                    {puedeGestionarPersonal && emp.activo && (
+                      <Button size="small" color="error" onClick={() => desactivar(emp.id)}>
+                        Desactivar
+                      </Button>
+                    )}
+                    {puedeGestionarPersonal && !emp.activo && (
+                      <Button size="small" color="success" onClick={() => activar(emp.id)}>
+                        Activar
+                      </Button>
+                    )}
 </TableCell>
               </TableRow>
             ))}

@@ -46,10 +46,12 @@ function TarjetaEmpleado({ emp, bloqueado }) {
       }}
     >
       <Box sx={{ minWidth: 0 }}>
-        <Typography variant="caption" fontWeight={500} display="block" lineHeight={1.2} noWrap>
-          {emp.nombre}
-        </Typography>
-        <Typography variant="caption" color="text.secondary" fontSize={10} noWrap>
+        <Typography variant="caption" fontWeight={600} display="block" lineHeight={1.2}
+  sx={{ wordBreak: 'break-word', whiteSpace: 'normal', color: '#1a1a1a' }}>
+  {emp.nombre}
+</Typography>
+<Typography variant="caption" fontSize={10}
+  sx={{ whiteSpace: 'normal', color: '#444444' }}>
           {emp.rango}
           {emp.esAdmin      && ' · Adm.'}
           {emp.esJornadaEcu && ' · Jorn.'}
@@ -79,9 +81,9 @@ function ZonaEstacion({ estacion, items, puedeEditar, onQuitar }) {
       transition: 'all 0.15s'
     }}>
       <Typography variant="caption" fontWeight="bold" display="block"
-        sx={{ mb: 0.5, color: 'text.secondary', textTransform: 'uppercase', fontSize: 10 }}>
-        {estacion.nombre}
-      </Typography>
+  sx={{ mb: 0.5, color: '#333333', textTransform: 'uppercase', fontSize: 11 }}>
+  {estacion.nombre}
+</Typography>
       <SortableContext items={operativos.map(i => String(i.id))} strategy={verticalListSortingStrategy}>
         {operativos.map(emp => (
           <Box key={emp.id} sx={{ position: 'relative', pr: puedeEditar ? 2 : 0 }}>
@@ -604,6 +606,11 @@ const handleDragOver = ({ active, over }) => {
     }
   }
 
+  const descargarPDF = () => {
+  const url = `http://localhost:3001/api/pdf/distributivo/${grupo}/${mes}/${anio}`
+  window.open(url, '_blank')
+}
+
   if (cargando) return <Box sx={{ p:4, display:'flex', justifyContent:'center' }}><CircularProgress /></Box>
 
   const disponibles = listaPersonal.filter(e => !e.bloqueado)
@@ -637,6 +644,9 @@ const handleDragOver = ({ active, over }) => {
             {guardando ? 'Guardando...' : 'Guardar distributivo'}
           </Button>
         )}
+        <Button variant="outlined" color="error" onClick={descargarPDF}>
+  Descargar PDF
+</Button>
       </Box>
 
       {mensaje && <Alert severity="success" sx={{ mb:2 }}>{mensaje}</Alert>}
@@ -664,9 +674,9 @@ const handleDragOver = ({ active, over }) => {
   <Box>
 
               {/* Fila 1 — X1 a X4 */}
-              <Typography variant="caption" color="text.secondary" fontWeight="bold" mb={0.5} display="block">
-                COMPAÑÍAS X1 — X4
-              </Typography>
+             <Typography variant="body2" color="#333333" fontWeight="bold" mb={0.5} display="block">
+
+</Typography>
            <Box sx={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:1, mb:2 }}>
   {estaciones.slice(0,4).map(est => (
     <ZonaEstacion key={est.id} estacion={est}
@@ -676,9 +686,9 @@ const handleDragOver = ({ active, over }) => {
               </Box>
 
               {/* Fila 2 — X5 a X8 */}
-              <Typography variant="caption" color="text.secondary" fontWeight="bold" mb={0.5} display="block">
-                COMPAÑÍAS X5 — X8
-              </Typography>
+             <Typography variant="body2" color="#333333" fontWeight="bold" mb={0.5} display="block">
+  
+</Typography>
              <Box sx={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:1, mb:2 }}>
   {estaciones.slice(4,8).map(est => (
     <ZonaEstacion key={est.id} estacion={est}

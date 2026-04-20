@@ -8,13 +8,14 @@ datasource db {
 }
 
 model Usuario {
-  id       Int      @id @default(autoincrement())
-  nombre   String
-  email    String   @unique
-  password String
-  rol      Rol      @default(VISUALIZADOR)
-  activo   Boolean  @default(true)
-  creadoEn DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  nombre       String
+  email        String   @unique
+  password     String
+  rol          Rol      @default(VISUALIZADOR)
+  activo       Boolean  @default(false)
+  aprobado     Boolean  @default(false)
+  creadoEn     DateTime @default(now())
 }
 
 enum Rol {

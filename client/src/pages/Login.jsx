@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
+import Registro from './Registro'
 import {
   Box, Card, CardContent, TextField,
   Button, Typography, Alert
 } from '@mui/material'
 
 export default function Login() {
+  const [mostrarRegistro, setMostrarRegistro] = useState(false)
   const { login } = useAuth()
   const [form, setForm]         = useState({ email: '', password: '' })
   const [error, setError]       = useState('')
@@ -25,7 +27,11 @@ export default function Login() {
     }
   }
 
+  if (mostrarRegistro) {
+  return <Registro onVolver={() => setMostrarRegistro(false)} />
+}
   return (
+    
     <Box sx={{
       minHeight: '100vh',
       display: 'flex',
@@ -69,6 +75,12 @@ export default function Login() {
           >
             {cargando ? 'Ingresando...' : 'Ingresar'}
           </Button>
+          <Button
+  fullWidth sx={{ mt: 1, color: 'text.secondary' }}
+  onClick={() => setMostrarRegistro(true)}
+>
+  ¿No tienes cuenta? Solicitar acceso
+</Button>
         </CardContent>
       </Card>
     </Box>

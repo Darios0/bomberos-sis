@@ -12,12 +12,17 @@ const evaluacionesRoutes = require('./routes/evaluaciones')
 const distributivoRoutes = require('./routes/distributivo')
 const historialRoutes = require('./routes/historial')
 const notificacionesRoutes = require('./routes/notificaciones')
+const usuariosRoutes = require('./routes/usuarios')
+const pdfRoutes = require('./routes/pdf')
+
 require('dotenv').config()
 
 const app = express()
 app.use(cors())
 app.use(express.json())
 app.use('/api/notificaciones', notificacionesRoutes)
+app.use('/api/usuarios', usuariosRoutes)
+app.use('/api/pdf', pdfRoutes)
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', mensaje: 'Servidor funcionando correctamente' })
@@ -28,7 +33,8 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const usuario = await prisma.usuario.findUnique({ where: { email } })
     if (!usuario) return res.status(401).json({ error: 'Credenciales incorrectas' })
-    if (!usuario.activo) return res.status(401).json({ error: 'Usuario inactivo' })
+    if (!usuario.aprobado) return res.status(401).json({ error: 'Tu cuenta está pendiente de aprobación por el administrador' })
+if (!usuario.activo)   return res.status(401).json({ error: 'Usuario inactivo' })
     const valido = await bcrypt.compare(password, usuario.password)
     if (!valido) return res.status(401).json({ error: 'Credenciales incorrectas' })
     const token = jwt.sign(
