@@ -15,6 +15,7 @@ model Usuario {
   rol          Rol      @default(VISUALIZADOR)
   activo       Boolean  @default(false)
   aprobado     Boolean  @default(false)
+  cedula       String?  @unique
   creadoEn     DateTime @default(now())
 }
 

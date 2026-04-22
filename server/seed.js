@@ -19,7 +19,8 @@ await prisma.usuario.create({
     password: hash,
     rol:      'ADMIN',
     activo:   true,
-    aprobado: true
+    aprobado: true,
+    cedula:   '0000000000'
   }
 })
 

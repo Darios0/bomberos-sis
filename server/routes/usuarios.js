@@ -88,32 +88,86 @@ router.post('/registro', async (req, res) => {
 })
 
 // POST /api/usuarios — crear desde admin (aprobado automáticamente)
-router.post('/', async (req, res) => {
-  const { nombre, email, password, rol } = req.body
-  if (!nombre || !email || !password || !rol) {
+router.post('/registro', async (req, res) => {
+  const { nombre, email, password, cedula } = req.body
+
+  if (!nombre || !email || !password || !cedula) {
     return res.status(400).json({ error: 'Todos los campos son requeridos' })
   }
+
   if (!email.endsWith(DOMINIO_PERMITIDO)) {
     return res.status(400).json({
-      error: `Solo se permiten correos con ${DOMINIO_PERMITIDO}`
+      error: `Solo se permiten correos institucionales (${DOMINIO_PERMITIDO})`
     })
   }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' })
+  }
+
+  // Validar formato de cédula — 10 dígitos numéricos
+  if (!/^\d{10}$/.test(cedula)) {
+    return res.status(400).json({ error: 'La cédula debe tener exactamente 10 dígitos numéricos' })
+  }
+
   try {
+    // Verificar que la cédula existe en el registro de empleados
+    const empleado = await prisma.empleado.findUnique({
+      where: { cedula }
+    })
+
+    if (!empleado) {
+      return res.status(400).json({
+        error: 'La cédula no está registrada en el sistema de personal. Contacta al administrador.'
+      })
+    }
+
+    if (!empleado.activo) {
+      return res.status(400).json({
+        error: 'El empleado asociado a esta cédula está inactivo. Contacta al administrador.'
+      })
+    }
+
+    // Verificar que esa cédula no tenga ya un usuario registrado
+    const usuarioExistente = await prisma.usuario.findUnique({
+      where: { cedula }
+    })
+
+    if (usuarioExistente) {
+      return res.status(400).json({
+        error: 'Ya existe una cuenta registrada con esta cédula.'
+      })
+    }
+
     const total = await prisma.usuario.count()
     if (total >= MAX_USUARIOS) {
-      return res.status(400).json({ error: 'Se alcanzó el límite máximo de usuarios' })
+      return res.status(400).json({ error: 'Se alcanzó el límite máximo de usuarios del sistema' })
     }
-    const hash = await bcrypt.hash(password, 10)
+
+    const hash    = await bcrypt.hash(password, 10)
     const usuario = await prisma.usuario.create({
-      data: { nombre, email, password: hash, rol, activo: true, aprobado: true },
-      select: { id: true, nombre: true, email: true, rol: true, activo: true, aprobado: true }
+      data: {
+        nombre,
+        email,
+        password: hash,
+        cedula,
+        rol:      'VISUALIZADOR',
+        activo:   false,
+        aprobado: false
+      },
+      select: { id: true, nombre: true, email: true, rol: true }
     })
-    res.status(201).json(usuario)
+
+    res.status(201).json({
+      usuario,
+      empleado: { nombre: empleado.nombre, rango: empleado.rango },
+      mensaje: 'Registro exitoso. Tu cuenta está pendiente de aprobación por el administrador.'
+    })
   } catch (error) {
     if (error.code === 'P2002') {
-      return res.status(400).json({ error: 'El correo ya está registrado' })
+      return res.status(400).json({ error: 'El correo o cédula ya está registrado' })
     }
-    res.status(500).json({ error: 'Error al crear usuario' })
+    res.status(500).json({ error: 'Error al registrar usuario' })
   }
 })
 
