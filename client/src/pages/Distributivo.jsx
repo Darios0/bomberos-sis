@@ -322,6 +322,7 @@ export default function Distributivo() {
   const [jornadaEcu, setJornadaEcu] = useState([])
   const [zonaAdmin, setZonaAdmin]   = useState([])
   const [activeEmp, setActiveEmp]   = useState(null)
+  const [cambiosPendientes, setCambiosPendientes] = useState(false)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -544,12 +545,14 @@ const handleDragOver = ({ active, over }) => {
     } else if (origen === 'zona-JORNADA-ECU') setJornadaEcu(p => [...p, emp])
     else if (origen === 'zona-ADMIN') setZonaAdmin(p => [...p, emp])
   }
+setCambiosPendientes(true)
 }
   const quitarDeEstacion = (empId, estId) => {
     const emp = asignaciones[estId]?.find(e => e.id === empId)
     if (!emp) return
     setAsignaciones(p => ({ ...p, [estId]: p[estId].filter(e => e.id !== empId) }))
     setListaPersonal(p => [...p, { ...emp, bloqueado: false }])
+    setCambiosPendientes(true)
   }
 
   const quitarDeGrupoEcu = (sg, empId) => {
@@ -557,6 +560,7 @@ const handleDragOver = ({ active, over }) => {
     if (!emp) return
     setZonaEcu(p => ({ ...p, [sg]: p[sg].filter(e => e.id !== empId) }))
     setListaPersonal(p => [...p, { ...emp, bloqueado: false }])
+    setCambiosPendientes(true)
   }
 
   const quitarDeZona = (zona, empId) => {
@@ -571,6 +575,7 @@ const handleDragOver = ({ active, over }) => {
       setJornadaEcu(p => p.filter(e => e.id !== empId))
       setListaPersonal(p => [...p, { ...emp, bloqueado: false }])
     }
+    setCambiosPendientes(true)
   }
 
   const guardar = async () => {
@@ -604,6 +609,7 @@ const handleDragOver = ({ active, over }) => {
     } finally {
       setGuardando(false)
     }
+    setCambiosPendientes(true)
   }
 
   const descargarPDF = () => {
@@ -623,28 +629,50 @@ const handleDragOver = ({ active, over }) => {
         <Typography variant="h5" fontWeight="bold" sx={{ flex:1 }}>Distributivo mensual</Typography>
         <FormControl size="small" sx={{ minWidth:130 }}>
           <InputLabel>Grupo</InputLabel>
-          <Select value={grupo} label="Grupo" onChange={e => setGrupo(e.target.value)}>
+          <Select value={grupo} label="Grupo" onChange={e => {
+  if (cambiosPendientes) {
+    if (!confirm('Tienes cambios sin guardar. ¿Cambiar de grupo sin guardar?')) return
+  }
+  setCambiosPendientes(false)
+  setGrupo(e.target.value)
+}}>
             {GRUPOS.map(g => <MenuItem key={g} value={g}>{g.replace('_',' ')}</MenuItem>)}
           </Select>
         </FormControl>
         <FormControl size="small" sx={{ minWidth:120 }}>
           <InputLabel>Mes</InputLabel>
-          <Select value={mes} label="Mes" onChange={e => setMes(e.target.value)}>
+          <Select value={mes} label="Mes" onChange={e => {
+  if (cambiosPendientes) {
+    if (!confirm('Tienes cambios sin guardar. ¿Cambiar de mes sin guardar?')) return
+  }
+  setCambiosPendientes(false)
+  setMes(e.target.value)
+}}>
             {MESES.map((m,i) => <MenuItem key={i} value={i+1}>{m}</MenuItem>)}
           </Select>
         </FormControl>
         <FormControl size="small" sx={{ minWidth:90 }}>
           <InputLabel>Año</InputLabel>
-          <Select value={anio} label="Año" onChange={e => setAnio(e.target.value)}>
+          <Select value={anio} label="Año" onChange={e => {
+  if (cambiosPendientes) {
+    if (!confirm('Tienes cambios sin guardar. ¿Cambiar de año sin guardar?')) return
+  }
+  setCambiosPendientes(false)
+  setAnio(e.target.value)
+}}>
             {[2025,2026,2027].map(a => <MenuItem key={a} value={a}>{a}</MenuItem>)}
           </Select>
         </FormControl>
+        
         {puedeEditar && (
           <Button variant="contained" sx={{ bgcolor:'#c62828' }} onClick={guardar} disabled={guardando}>
             {guardando ? 'Guardando...' : 'Guardar distributivo'}
           </Button>
+          
+          
         )}
         <Button variant="outlined" color="error" onClick={descargarPDF}>
+          
   Descargar PDF
 </Button>
       </Box>
@@ -652,6 +680,7 @@ const handleDragOver = ({ active, over }) => {
       {mensaje && <Alert severity="success" sx={{ mb:2 }}>{mensaje}</Alert>}
       {error   && <Alert severity="error"   sx={{ mb:2 }}>{error}</Alert>}
       {!puedeEditar && <Alert severity="info" sx={{ mb:2 }}>Solo visualización</Alert>}
+      
 
       <DndContext
   sensors={sensors}

@@ -33,59 +33,77 @@ const COLOR_AUSENCIA = {
 
 // ── Tarjeta de persona ─────────────────────────────────────────
 function TarjetaPersona({ emp, esAdmin }) {
+  const tieneReemplazo = !!emp.reemplazo
+
   return (
-    <Box sx={{
-      display: 'flex', justifyContent: 'space-between',
-      alignItems: 'flex-start', py: 0.5, px: 0.5,
-      borderRadius: 0.5, mb: 0.3,
-      bgcolor: emp.ausente
-        ? '#fff3e0'
-        : esAdmin ? '#e3f2fd' : 'transparent',
-      border: emp.ausente ? '1px solid #ffcc02' : '1px solid transparent'
-    }}>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-          <Typography
-            variant="caption"
-            display="block"
-            sx={{
-              fontWeight: 500,
-              color: emp.ausente ? '#e65100' : 'text.primary',
-              textDecoration: emp.ausente ? 'line-through' : 'none',
-              fontSize: 11
-            }}
-          >
-            {emp.nombre}
+    <Box sx={{ mb: 0.3 }}>
+      {/* Persona original */}
+      <Box sx={{
+        display: 'flex', justifyContent: 'space-between',
+        alignItems: 'flex-start', py: 0.4, px: 0.5,
+        borderRadius: 0.5,
+        bgcolor: tieneReemplazo ? '#f3e5f5' :
+                 emp.ausente    ? '#fff3e0' :
+                 esAdmin        ? '#e3f2fd' : 'transparent',
+        border: tieneReemplazo ? '1px solid #ce93d8' :
+                emp.ausente    ? '1px solid #ffcc02'  : '1px solid transparent'
+      }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+            <Typography variant="caption" sx={{
+              fontWeight: 500, fontSize: 11,
+              color: emp.ausente || tieneReemplazo ? '#7b1fa2' : 'text.primary',
+              textDecoration: emp.ausente || tieneReemplazo ? 'line-through' : 'none'
+            }}>
+              {emp.nombre}
+            </Typography>
+            {esAdmin && (
+              <Chip label="Adm." size="small"
+                sx={{ fontSize: 9, height: 14, bgcolor: '#bbdefb', color: '#0d47a1' }} />
+            )}
+            {emp.ausente && emp.ausenciaInfo && (
+              <Chip label={emp.ausenciaInfo.tipo} size="small"
+                sx={{ fontSize: 9, height: 14,
+                  bgcolor: COLOR_AUSENCIA[emp.ausenciaInfo.tipo] || '#9e9e9e',
+                  color: 'white' }} />
+            )}
+            {tieneReemplazo && !emp.ausente && (
+              <Chip label="Reemplazado" size="small"
+                sx={{ fontSize: 9, height: 14, bgcolor: '#9c27b0', color: 'white' }} />
+            )}
+          </Box>
+          <Typography variant="caption" color="text.secondary" fontSize={10}>
+            {emp.rango}
           </Typography>
-          {esAdmin && (
-            <Chip label="Adm." size="small"
-              sx={{ fontSize: 9, height: 14, bgcolor: '#bbdefb', color: '#0d47a1' }} />
-          )}
-          {emp.ausente && emp.ausenciaInfo && (
-            <Chip
-              label={emp.ausenciaInfo.tipo}
-              size="small"
-              sx={{
-                fontSize: 9, height: 14,
-                bgcolor: COLOR_AUSENCIA[emp.ausenciaInfo.tipo] || '#9e9e9e',
-                color: 'white'
-              }}
-            />
-          )}
         </Box>
-        <Typography variant="caption" color="text.secondary" fontSize={10}>
-          {emp.rango}
-          {emp.ausente && emp.ausenciaInfo?.horaInicio && (
-            <span style={{ color: '#e65100' }}>
-              {' '}· Permiso {emp.ausenciaInfo.horaInicio}–{emp.ausenciaInfo.horaFin}
-            </span>
-          )}
-        </Typography>
+        <Box sx={{
+          width: 8, height: 8, borderRadius: '50%', flexShrink: 0, mt: 0.5,
+          bgcolor: emp.ausente || tieneReemplazo ? 'warning.main' : 'success.main'
+        }} />
       </Box>
-      {emp.ausente ? (
-        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'warning.main', flexShrink: 0, mt: 0.5 }} />
-      ) : (
-        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main', flexShrink: 0, mt: 0.5 }} />
+
+      {/* Reemplazo — mostrado en morado debajo */}
+      {tieneReemplazo && (
+        <Box sx={{
+          display: 'flex', alignItems: 'center', gap: 0.5,
+          py: 0.3, px: 0.5, ml: 1,
+          borderRadius: 0.5,
+          bgcolor: '#f3e5f5',
+          border: '1px solid #ce93d8'
+        }}>
+          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#9c27b0', flexShrink: 0 }} />
+          <Box>
+            <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 600, color: '#6a1b9a' }}>
+              {emp.reemplazo.empleadoReemplazo.nombre}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" fontSize={9} display="block">
+              {emp.reemplazo.empleadoReemplazo.rango} · Reemplaza a {emp.nombre}
+              {emp.reemplazo.motivo && ` — ${emp.reemplazo.motivo}`}
+            </Typography>
+          </Box>
+          <Chip label="Reemplazo" size="small"
+            sx={{ fontSize: 9, height: 14, bgcolor: '#9c27b0', color: 'white', ml: 'auto' }} />
+        </Box>
       )}
     </Box>
   )
@@ -373,7 +391,7 @@ export default function Calendario() {
             {/* Estaciones X1-X4 */}
             <Typography variant="caption" color="text.secondary" fontWeight="bold"
               display="block" mb={0.5} textTransform="uppercase">
-              Compañías X1 — X4
+          
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, mb: 1.5 }}>
               {datos.porEstacion.slice(0,4).map(est => (
@@ -384,7 +402,7 @@ export default function Calendario() {
             {/* Estaciones X5-X8 */}
             <Typography variant="caption" color="text.secondary" fontWeight="bold"
               display="block" mb={0.5} textTransform="uppercase">
-              Compañías X5 — X8
+       
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, mb: 1.5 }}>
               {datos.porEstacion.slice(4,8).map(est => (

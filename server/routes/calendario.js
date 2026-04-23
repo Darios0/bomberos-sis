@@ -54,6 +54,22 @@ router.get('/:fecha', async (req, res) => {
 
     const idsAusentes = new Set(ausencias.map(a => a.empleadoId))
 
+// Reemplazos del día
+const reemplazos = await prisma.reemplazo.findMany({
+  where: { fecha: fechaDate },
+  include: {
+    empleadoOriginal:  { select: { id: true, nombre: true, rango: true } },
+    empleadoReemplazo: { select: { id: true, nombre: true, rango: true } },
+    estacion:          { select: { id: true, nombre: true } }
+  }
+})
+
+// Map de reemplazos por empleado original
+const mapaReemplazos = {}
+reemplazos.forEach(r => {
+  mapaReemplazos[r.empleadoOriginalId] = r
+})    
+
     // Agrupar por estación desde el distributivo
     const estaciones = await prisma.estacion.findMany({
       orderBy: { id: 'asc' }
@@ -61,20 +77,22 @@ router.get('/:fecha', async (req, res) => {
 
     const porEstacion = estaciones.map(est => {
       const itemsEst = distributivo?.items?.filter(i => i.estacionId === est.id) || []
-      const operativos = itemsEst
-        .filter(i => !i.esAdmin)
-        .map(i => ({
-          ...i.empleado,
-          ausente:      idsAusentes.has(i.empleado.id),
-          ausenciaInfo: ausencias.find(a => a.empleadoId === i.empleado.id) || null
-        }))
-      const administrativos = itemsEst
-        .filter(i => i.esAdmin)
-        .map(i => ({
-          ...i.empleado,
-          ausente:      idsAusentes.has(i.empleado.id),
-          ausenciaInfo: ausencias.find(a => a.empleadoId === i.empleado.id) || null
-        }))
+    const operativos = itemsEst
+  .filter(i => !i.esAdmin)
+  .map(i => ({
+    ...i.empleado,
+    ausente:      idsAusentes.has(i.empleado.id),
+    ausenciaInfo: ausencias.find(a => a.empleadoId === i.empleado.id) || null,
+    reemplazo:    mapaReemplazos[i.empleado.id] || null
+  }))
+const administrativos = itemsEst
+  .filter(i => i.esAdmin)
+  .map(i => ({
+    ...i.empleado,
+    ausente:      idsAusentes.has(i.empleado.id),
+    ausenciaInfo: ausencias.find(a => a.empleadoId === i.empleado.id) || null,
+    reemplazo:    mapaReemplazos[i.empleado.id] || null
+  }))
       return {
         id:             est.id,
         nombre:         est.nombre,
@@ -109,6 +127,7 @@ router.get('/:fecha', async (req, res) => {
       personalEcu,
       operativosAdmin,
       ausencias,
+      reemplazos,
       totalAusentes:     idsAusentes.size,
       distributivoExiste: !!distributivo
     })

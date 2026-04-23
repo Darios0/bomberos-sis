@@ -43,6 +43,8 @@ model Empleado {
   evaluaciones        Evaluacion[]
   historialEstaciones HistorialEstacion[]
   distributivoItems   DistributivoItem[]
+  reemplazosComoOriginal  Reemplazo[] @relation("ReemplazoOriginal")
+reemplazosComoSuplente  Reemplazo[] @relation("ReemplazoSuplente")
 }
 
 enum TipoPersonal {
@@ -72,6 +74,7 @@ model Estacion {
   asignaciones Asignacion[]
   historial    HistorialEstacion[]
   distributivoItems   DistributivoItem[]
+  reemplazos Reemplazo[]
 }
 
 model Asignacion {
@@ -189,4 +192,22 @@ enum NivelUrgencia {
   NORMAL
   URGENTE
   EMERGENCIA
+}
+
+model Reemplazo {
+  id              Int      @id @default(autoincrement())
+  fecha           DateTime @db.Date
+  empleadoOriginalId Int
+  empleadoReemplazoId Int
+  estacionId      Int?
+  grupoEcu        GrupoEcu?
+  esEcu           Boolean  @default(false)
+  motivo          String?
+  aprobado        Boolean  @default(true)
+  creadoEn        DateTime @default(now())
+  creadoPor       Int
+
+  empleadoOriginal  Empleado  @relation("ReemplazoOriginal",  fields: [empleadoOriginalId],  references: [id])
+  empleadoReemplazo Empleado  @relation("ReemplazoSuplente",  fields: [empleadoReemplazoId], references: [id])
+  estacion          Estacion? @relation(fields: [estacionId], references: [id])
 }

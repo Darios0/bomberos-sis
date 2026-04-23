@@ -15,6 +15,7 @@ const notificacionesRoutes = require('./routes/notificaciones')
 const usuariosRoutes = require('./routes/usuarios')
 const pdfRoutes = require('./routes/pdf')
 const reportesRoutes = require('./routes/reportes')
+const reemplazosRoutes = require('./routes/reemplazos')
 
 require('dotenv').config()
 
@@ -25,7 +26,7 @@ app.use('/api/notificaciones', notificacionesRoutes)
 app.use('/api/usuarios', usuariosRoutes)
 app.use('/api/pdf', pdfRoutes)
 app.use('/api/reportes', reportesRoutes)
-
+app.use('/api/reemplazos', reemplazosRoutes)
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', mensaje: 'Servidor funcionando correctamente' })
 })
