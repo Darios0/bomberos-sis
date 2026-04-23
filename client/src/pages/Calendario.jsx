@@ -36,37 +36,56 @@ function TarjetaPersona({ emp, esAdmin }) {
   return (
     <Box sx={{
       display: 'flex', justifyContent: 'space-between',
-      alignItems: 'center', py: 0.4, px: 0.5,
-      borderRadius: 0.5,
-      bgcolor: emp.ausente ? '#fff3e0' : esAdmin ? '#e3f2fd' : 'transparent',
-      mb: 0.3
+      alignItems: 'flex-start', py: 0.5, px: 0.5,
+      borderRadius: 0.5, mb: 0.3,
+      bgcolor: emp.ausente
+        ? '#fff3e0'
+        : esAdmin ? '#e3f2fd' : 'transparent',
+      border: emp.ausente ? '1px solid #ffcc02' : '1px solid transparent'
     }}>
-      <Box>
-        <Typography variant="caption" display="block"
-          sx={{ fontWeight: emp.ausente ? 400 : 500, color: emp.ausente ? 'text.disabled' : 'text.primary' }}>
-          {emp.nombre}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+          <Typography
+            variant="caption"
+            display="block"
+            sx={{
+              fontWeight: 500,
+              color: emp.ausente ? '#e65100' : 'text.primary',
+              textDecoration: emp.ausente ? 'line-through' : 'none',
+              fontSize: 11
+            }}
+          >
+            {emp.nombre}
+          </Typography>
           {esAdmin && (
             <Chip label="Adm." size="small"
-              sx={{ ml: 0.5, fontSize: 9, height: 14, bgcolor: '#bbdefb', color: '#0d47a1' }} />
+              sx={{ fontSize: 9, height: 14, bgcolor: '#bbdefb', color: '#0d47a1' }} />
           )}
-        </Typography>
+          {emp.ausente && emp.ausenciaInfo && (
+            <Chip
+              label={emp.ausenciaInfo.tipo}
+              size="small"
+              sx={{
+                fontSize: 9, height: 14,
+                bgcolor: COLOR_AUSENCIA[emp.ausenciaInfo.tipo] || '#9e9e9e',
+                color: 'white'
+              }}
+            />
+          )}
+        </Box>
         <Typography variant="caption" color="text.secondary" fontSize={10}>
           {emp.rango}
+          {emp.ausente && emp.ausenciaInfo?.horaInicio && (
+            <span style={{ color: '#e65100' }}>
+              {' '}· Permiso {emp.ausenciaInfo.horaInicio}–{emp.ausenciaInfo.horaFin}
+            </span>
+          )}
         </Typography>
       </Box>
-      {emp.ausente && emp.ausenciaInfo && (
-        <Chip
-          label={emp.ausenciaInfo.tipo}
-          size="small"
-          sx={{
-            fontSize: 9, height: 16,
-            bgcolor: COLOR_AUSENCIA[emp.ausenciaInfo.tipo] || '#9e9e9e',
-            color: 'white'
-          }}
-        />
-      )}
-      {!emp.ausente && (
-        <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'success.main' }} />
+      {emp.ausente ? (
+        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'warning.main', flexShrink: 0, mt: 0.5 }} />
+      ) : (
+        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main', flexShrink: 0, mt: 0.5 }} />
       )}
     </Box>
   )
@@ -75,12 +94,10 @@ function TarjetaPersona({ emp, esAdmin }) {
 // ── Card de estación ───────────────────────────────────────────
 function CardEstacion({ estacion }) {
   const [expandida, setExpandida] = useState(true)
-  const totalAusentes = [
-    ...estacion.operativos,
-    ...estacion.administrativos
-  ].filter(e => e.ausente).length
-
-  const sinPersonal = estacion.operativos.length === 0 && estacion.administrativos.length === 0
+  const todos        = [...estacion.operativos, ...estacion.administrativos]
+  const totalAusentes  = todos.filter(e => e.ausente).length
+  const totalDisponibles = todos.filter(e => !e.ausente).length
+  const sinPersonal  = todos.length === 0
 
   return (
     <Card sx={{
@@ -91,20 +108,28 @@ function CardEstacion({ estacion }) {
       <Box sx={{
         display: 'flex', justifyContent: 'space-between',
         alignItems: 'center', px: 1.5, py: 0.75,
-        bgcolor: '#f5f5f5', borderBottom: expandida ? '1px solid #e0e0e0' : 'none',
+        bgcolor: totalAusentes > 0 ? '#fff8e1' : '#f5f5f5',
+        borderBottom: expandida ? '1px solid #e0e0e0' : 'none',
         cursor: 'pointer'
       }}
         onClick={() => setExpandida(e => !e)}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="caption" fontWeight="bold" textTransform="uppercase" fontSize={11}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+          <Typography variant="caption" fontWeight="bold"
+            textTransform="uppercase" fontSize={11}>
             {estacion.nombre}
           </Typography>
-          <Chip label={estacion.total} size="small"
-            sx={{ height: 16, fontSize: 9 }} />
+          <Chip
+            label={`${totalDisponibles} disponible${totalDisponibles !== 1 ? 's' : ''}`}
+            size="small" color="success"
+            sx={{ height: 16, fontSize: 9 }}
+          />
           {totalAusentes > 0 && (
-            <Chip label={`${totalAusentes} ausente${totalAusentes > 1 ? 's' : ''}`}
-              size="small" color="warning" sx={{ height: 16, fontSize: 9 }} />
+            <Chip
+              label={`${totalAusentes} ausente${totalAusentes !== 1 ? 's' : ''}`}
+              size="small" color="warning"
+              sx={{ height: 16, fontSize: 9 }}
+            />
           )}
         </Box>
         <IconButton size="small" sx={{ p: 0 }}>
@@ -119,13 +144,27 @@ function CardEstacion({ estacion }) {
               Sin personal asignado este mes
             </Typography>
           )}
-          {estacion.operativos.map(emp => (
+
+          {/* Disponibles primero */}
+          {estacion.operativos.filter(e => !e.ausente).map(emp => (
             <TarjetaPersona key={emp.id} emp={emp} esAdmin={false} />
           ))}
-          {estacion.administrativos.length > 0 && (
+          {estacion.administrativos.filter(e => !e.ausente).map(emp => (
+            <TarjetaPersona key={emp.id} emp={emp} esAdmin={true} />
+          ))}
+
+          {/* Ausentes al final con separador */}
+          {totalAusentes > 0 && (
             <>
-              {estacion.operativos.length > 0 && <Divider sx={{ my: 0.5 }} />}
-              {estacion.administrativos.map(emp => (
+              <Divider sx={{ my: 0.5 }}>
+                <Typography variant="caption" fontSize={9} color="warning.main">
+                  AUSENTES
+                </Typography>
+              </Divider>
+              {estacion.operativos.filter(e => e.ausente).map(emp => (
+                <TarjetaPersona key={emp.id} emp={emp} esAdmin={false} />
+              ))}
+              {estacion.administrativos.filter(e => e.ausente).map(emp => (
                 <TarjetaPersona key={emp.id} emp={emp} esAdmin={true} />
               ))}
             </>
