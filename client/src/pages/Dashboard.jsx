@@ -11,12 +11,14 @@ import Distributivo from './Distributivo'
 import { NotificacionesProvider } from '../context/NotificacionesContext'
 import CampanaNotificaciones from '../components/CampanaNotificaciones'
 import Usuarios from './Usuarios'
+import Reportes from './Reportes'
 
 const MENU = [
   { label: 'Calendario',   vista: 'calendario',   icono: '📅', roles: null },
   { label: 'Distributivo', vista: 'distributivo',  icono: '📋', roles: null },
   { label: 'Personal',     vista: 'empleados',     icono: '👨‍🚒', roles: ['ADMIN', 'OPERADOR', 'EVALUADOR'] },
   { label: 'Estaciones',   vista: 'estaciones',    icono: '🏠', roles: ['ADMIN'] },
+  { label: 'Reportes',     vista: 'reportes',      icono: '📊', roles: ['ADMIN','OPERADOR','EVALUADOR'] },
   { label: 'Usuarios',     vista: 'usuarios',      icono: '👤', roles: ['ADMIN'] },
 ]
 
@@ -155,6 +157,7 @@ const [vista, setVista] = useState(vistaInicial)
           {vista === 'empleados'    && <Empleados />}
           {vista === 'estaciones'   && <Estaciones />}
           {vista === 'usuarios' && <Usuarios />}
+          {vista === 'reportes' && <Reportes />}
         </Box>
       </Box>
     </Box>

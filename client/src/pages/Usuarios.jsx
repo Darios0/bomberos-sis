@@ -323,7 +323,12 @@ export default function Usuarios() {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Box>
                   <Typography variant="body1" fontWeight="bold">{u.nombre}</Typography>
-                  <Typography variant="body2" color="text.secondary">{u.email}</Typography>
+<Typography variant="body2" color="text.secondary">{u.email}</Typography>
+{u.cedula && (
+  <Typography variant="caption" color="text.secondary">
+    Cédula: {u.cedula}
+  </Typography>
+)}
                   <Typography variant="caption" color="text.disabled">
                     Solicitó acceso el {new Date(u.creadoEn).toLocaleDateString('es-EC', {
                       day: '2-digit', month: 'long', year: 'numeric',

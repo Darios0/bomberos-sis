@@ -14,6 +14,7 @@ const historialRoutes = require('./routes/historial')
 const notificacionesRoutes = require('./routes/notificaciones')
 const usuariosRoutes = require('./routes/usuarios')
 const pdfRoutes = require('./routes/pdf')
+const reportesRoutes = require('./routes/reportes')
 
 require('dotenv').config()
 
@@ -23,6 +24,7 @@ app.use(express.json())
 app.use('/api/notificaciones', notificacionesRoutes)
 app.use('/api/usuarios', usuariosRoutes)
 app.use('/api/pdf', pdfRoutes)
+app.use('/api/reportes', reportesRoutes)
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', mensaje: 'Servidor funcionando correctamente' })

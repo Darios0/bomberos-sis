@@ -306,5 +306,122 @@ ${admGen.length > 0 ? `
     res.status(500).json({ error: 'Error al generar PDF: ' + error.message })
   }
 })
+// GET /api/pdf/reporte/empleado/:id
+router.get('/reporte/empleado/:id', async (req, res) => {
+  try {
+    const id  = parseInt(req.params.id)
+    const res2 = await fetch(`http://localhost:3001/api/reportes/resumen-empleado/${id}`)
+    const data = await res2.json()
+    const r    = data
 
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+  * { margin:0;padding:0;box-sizing:border-box }
+  body { font-family:Arial,sans-serif;font-size:10px;color:#111;padding:16px }
+  h1 { font-size:13px;font-weight:bold;text-align:center;text-transform:uppercase }
+  h2 { font-size:11px;text-align:center;margin-top:2px }
+  .sub { font-size:10px;text-align:center;color:#444;margin-top:2px }
+  .emp { background:#c62828;color:white;padding:8px 12px;border-radius:4px;margin:10px 0 }
+  .emp-nombre { font-size:13px;font-weight:bold }
+  .emp-sub { font-size:10px;opacity:0.85;margin-top:2px }
+  .metrics { display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px }
+  .metric { border:1px solid #ddd;border-radius:4px;padding:6px;text-align:center }
+  .metric-val { font-size:18px;font-weight:bold }
+  .metric-lab { font-size:8px;color:#666 }
+  table { width:100%;border-collapse:collapse;margin-bottom:10px }
+  th { background:#f0f0f0;padding:3px 5px;font-size:9px;text-align:left;border-bottom:1px solid #ddd }
+  td { padding:3px 5px;font-size:9px;border-bottom:1px solid #f5f5f5 }
+  .sec { font-size:10px;font-weight:bold;text-transform:uppercase;color:#444;
+         border-bottom:1.5px solid #bbb;padding-bottom:2px;margin:8px 0 5px }
+  .chip { display:inline-block;padding:1px 5px;border-radius:3px;font-size:8px;color:white;font-weight:bold }
+</style>
+</head><body>
+<h1>Cuerpo de Bomberos de Ibarra</h1>
+<h2>Unidad de Talento Humano — Reporte de Personal</h2>
+
+<div class="emp">
+  <div class="emp-nombre">${r.empleado.nombre}</div>
+  <div class="emp-sub">${r.empleado.rango} — ${r.empleado.grupoOperativo?.replace('_',' ') || r.empleado.tipoPersonal}</div>
+</div>
+
+<div class="sec">Resumen general</div>
+<div class="metrics">
+  <div class="metric"><div class="metric-val" style="color:#f57c00">${r.totalVacaciones}</div><div class="metric-lab">Vacaciones</div></div>
+  <div class="metric"><div class="metric-val" style="color:#d32f2f">${r.totalEnfermedades}</div><div class="metric-lab">Enfermedades</div></div>
+  <div class="metric"><div class="metric-val" style="color:#0288d1">${r.totalPermisos}</div><div class="metric-lab">Permisos</div></div>
+  <div class="metric"><div class="metric-val" style="color:#7b1fa2">${r.totalFaltas}</div><div class="metric-lab">Faltas</div></div>
+  <div class="metric"><div class="metric-val" style="color:#455a64">${r.totalAtrasos}</div><div class="metric-lab">Atrasos</div></div>
+  <div class="metric"><div class="metric-val" style="color:#2e7d32">${r.totalMeritos}</div><div class="metric-lab">Méritos</div></div>
+  <div class="metric"><div class="metric-val" style="color:#c62828">${r.totalDemeritos}</div><div class="metric-lab">Deméritos</div></div>
+  <div class="metric"><div class="metric-val" style="color:#1565c0">${r.historial.length}</div><div class="metric-lab">Estaciones</div></div>
+</div>
+
+${r.historial.length > 0 ? `
+<div class="sec">Historial de estaciones</div>
+<table>
+  <tr><th>Estación</th><th>Desde</th><th>Hasta</th><th>Duración</th></tr>
+  ${r.historial.map(h => {
+    const dias  = h.dias
+    const anios = Math.floor(dias/365)
+    const meses = Math.floor((dias%365)/30)
+    const dur   = anios > 0 ? `${anios}a ${meses}m` : meses > 0 ? `${meses}m` : `${dias}d`
+    return `<tr>
+      <td>${h.estacion.nombre}</td>
+      <td>${new Date(h.fechaInicio).toLocaleDateString('es-EC')}</td>
+      <td>${h.fechaFin ? new Date(h.fechaFin).toLocaleDateString('es-EC') : 'Actualmente'}</td>
+      <td>${dur}</td>
+    </tr>`
+  }).join('')}
+</table>` : ''}
+
+${r.ausencias.length > 0 ? `
+<div class="sec">Ausencias registradas</div>
+<table>
+  <tr><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Detalle</th></tr>
+  ${r.ausencias.map(a => `<tr>
+    <td>${a.tipo}</td>
+    <td>${new Date(a.fechaInicio).toLocaleDateString('es-EC')}</td>
+    <td>${new Date(a.fechaFin).toLocaleDateString('es-EC')}</td>
+    <td>${a.tipoPermiso || a.descripcion || '—'}</td>
+  </tr>`).join('')}
+</table>` : ''}
+
+${r.evaluaciones.length > 0 ? `
+<div class="sec">Méritos y deméritos</div>
+<table>
+  <tr><th>Tipo</th><th>Descripción</th><th>Fecha</th></tr>
+  ${r.evaluaciones.map(ev => `<tr>
+    <td>${ev.tipo}</td>
+    <td>${ev.descripcion}</td>
+    <td>${new Date(ev.fecha).toLocaleDateString('es-EC')}</td>
+  </tr>`).join('')}
+</table>` : ''}
+
+<div style="margin-top:14px;font-size:8px;color:#999;text-align:right;border-top:1px solid #eee;padding-top:4px">
+  Generado el ${new Date().toLocaleDateString('es-EC', {day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+</div>
+</body></html>`
+
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage']
+    })
+    const page = await browser.newPage()
+    await page.setContent(html, { waitUntil: 'domcontentloaded' })
+    const pdf = await page.pdf({
+      format: 'A4', printBackground: true,
+      margin: { top:'12mm', bottom:'10mm', left:'12mm', right:'12mm' }
+    })
+    await browser.close()
+
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition',
+      `inline; filename="reporte-${r.empleado.nombre.replace(/ /g,'-')}.pdf"`)
+    res.end(pdf)
+  } catch (error) {
+    console.error('Error PDF reporte:', error)
+    res.status(500).json({ error: 'Error al generar PDF: ' + error.message })
+  }
+})
 module.exports = router
