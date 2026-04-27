@@ -222,4 +222,136 @@ router.post('/:id/rechazar', async (req, res) => {
   }
 })
 
+// GET /api/usuarios/perfil/:id
+router.get('/perfil/:id', async (req, res) => {
+  try {
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: parseInt(req.params.id) },
+      select: {
+        id: true, nombre: true, email: true,
+        rol: true, activo: true, cedula: true, creadoEn: true
+      }
+    })
+    if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+    // Buscar empleado vinculado por cédula
+    let empleado = null
+    if (usuario.cedula) {
+      empleado = await prisma.empleado.findUnique({
+        where: { cedula: usuario.cedula },
+        include: {
+          estacion: { select: { id: true, nombre: true } },
+          ausencias: {
+            where: {
+              fechaFin: { gte: new Date() }
+            },
+            orderBy: { fechaInicio: 'asc' },
+            take: 3
+          }
+        }
+      })
+    }
+
+    res.json({ usuario, empleado })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error al obtener perfil' })
+  }
+})
+
+// PUT /api/usuarios/perfil/:id/password
+router.put('/perfil/:id/password', async (req, res) => {
+  const { passwordActual, passwordNueva } = req.body
+  if (!passwordActual || !passwordNueva) {
+    return res.status(400).json({ error: 'Ambas contraseñas son requeridas' })
+  }
+  if (passwordNueva.length < 6) {
+    return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' })
+  }
+  try {
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: parseInt(req.params.id) }
+    })
+    if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+    const valido = await bcrypt.compare(passwordActual, usuario.password)
+    if (!valido) return res.status(401).json({ error: 'La contraseña actual es incorrecta' })
+
+    const hash = await bcrypt.hash(passwordNueva, 10)
+    await prisma.usuario.update({
+      where: { id: parseInt(req.params.id) },
+      data:  { password: hash }
+    })
+    res.json({ mensaje: 'Contraseña actualizada correctamente' })
+  } catch {
+    res.status(500).json({ error: 'Error al cambiar contraseña' })
+  }
+})
+
+// GET /api/usuarios/perfil/:id
+router.get('/perfil/:id', async (req, res) => {
+  try {
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: parseInt(req.params.id) },
+      select: {
+        id: true, nombre: true, email: true,
+        rol: true, activo: true, cedula: true, creadoEn: true
+      }
+    })
+    if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+    // Buscar empleado vinculado por cédula
+    let empleado = null
+    if (usuario.cedula) {
+      empleado = await prisma.empleado.findUnique({
+        where: { cedula: usuario.cedula },
+        include: {
+          estacion: { select: { id: true, nombre: true } },
+          ausencias: {
+            where: {
+              fechaFin: { gte: new Date() }
+            },
+            orderBy: { fechaInicio: 'asc' },
+            take: 3
+          }
+        }
+      })
+    }
+
+    res.json({ usuario, empleado })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error al obtener perfil' })
+  }
+})
+
+// PUT /api/usuarios/perfil/:id/password
+router.put('/perfil/:id/password', async (req, res) => {
+  const { passwordActual, passwordNueva } = req.body
+  if (!passwordActual || !passwordNueva) {
+    return res.status(400).json({ error: 'Ambas contraseñas son requeridas' })
+  }
+  if (passwordNueva.length < 6) {
+    return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' })
+  }
+  try {
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: parseInt(req.params.id) }
+    })
+    if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+    const valido = await bcrypt.compare(passwordActual, usuario.password)
+    if (!valido) return res.status(401).json({ error: 'La contraseña actual es incorrecta' })
+
+    const hash = await bcrypt.hash(passwordNueva, 10)
+    await prisma.usuario.update({
+      where: { id: parseInt(req.params.id) },
+      data:  { password: hash }
+    })
+    res.json({ mensaje: 'Contraseña actualizada correctamente' })
+  } catch {
+    res.status(500).json({ error: 'Error al cambiar contraseña' })
+  }
+})
+
 module.exports = router

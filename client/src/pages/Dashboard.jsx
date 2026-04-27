@@ -13,6 +13,7 @@ import CampanaNotificaciones from '../components/CampanaNotificaciones'
 import Usuarios from './Usuarios'
 import Reportes from './Reportes'
 import Reemplazos from './Reemplazos'
+import Perfil from './Perfil'
 
 const MENU = [
   { label: 'Calendario',   vista: 'calendario',   icono: '📅', roles: null },
@@ -106,6 +107,36 @@ const [vista, setVista] = useState(vistaInicial)
           ))}
         </List>
 
+{/* Perfil */}
+<Box sx={{ px: 1.5, pb: 1 }}>
+  <Tooltip title={colapsado ? 'Mi perfil' : ''} placement="right">
+    <ListItemButton
+      selected={vista === 'perfil'}
+      onClick={() => setVista('perfil')}
+      sx={{
+        color: 'white', borderRadius: 1,
+        px: colapsado ? 1.5 : 2,
+        justifyContent: colapsado ? 'center' : 'flex-start',
+        '&.Mui-selected': { bgcolor: 'rgba(255,255,255,0.2)' },
+        '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+      }}
+    >
+      <Typography fontSize={18} sx={{ mr: colapsado ? 0 : 1 }}>👤</Typography>
+      {!colapsado && (
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="caption" display="block" noWrap color="white" fontWeight={500}>
+            {usuario?.nombre}
+          </Typography>
+          <Typography variant="caption" display="block" noWrap
+            sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 10 }}>
+            Mi perfil
+          </Typography>
+        </Box>
+      )}
+    </ListItemButton>
+  </Tooltip>
+</Box>
+
         {/* Cerrar sesión */}
         <Box sx={{ p: 1.5 }}>
           <Tooltip title={colapsado ? 'Cerrar sesión' : ''} placement="right">
@@ -161,6 +192,7 @@ const [vista, setVista] = useState(vistaInicial)
           {vista === 'usuarios' && <Usuarios />}
           {vista === 'reportes' && <Reportes />}
           {vista === 'reemplazos' && <Reemplazos />}
+          {vista === 'perfil' && <Perfil />}
         </Box>
       </Box>
     </Box>
