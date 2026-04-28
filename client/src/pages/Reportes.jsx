@@ -7,6 +7,15 @@ import {
   TableCell, TableContainer, TableHead, TableRow, Paper, Divider
 } from '@mui/material'
 
+import {
+  exportarAusencias,
+  exportarHistorialEstaciones,
+  exportarEvaluaciones,
+  exportarResumenEmpleado
+} from '../utils/exportarExcel'
+
+
+
 const TIPOS_AUSENCIA = ['VACACIONES','ENFERMEDAD','PERMISO','FALTA','ATRASO']
 const GRUPOS = ['GRUPO_1','GRUPO_2','GRUPO_3']
 const COLOR_AUSENCIA = {
@@ -179,11 +188,23 @@ export default function Reportes() {
                   Buscar
                 </Button>
                 {datos.length > 0 && (
-                  <Button variant="outlined" color="error"
-                    onClick={() => descargarPDFReporte('ausencias')}>
-                    Descargar PDF
-                  </Button>
-                )}
+  <Button variant="outlined" color="success"
+    onClick={() => exportarHistorialEstaciones(datos)}>
+    Excel
+  </Button>
+)}
+               {datos.length > 0 && (
+  <>
+    <Button variant="outlined" color="error"
+      onClick={() => descargarPDFReporte('ausencias')}>
+      PDF
+    </Button>
+    <Button variant="outlined" color="success"
+      onClick={() => exportarAusencias(datos, filtroAus)}>
+      Excel
+    </Button>
+  </>
+)}
               </Box>
             </CardContent>
           </Card>
@@ -380,6 +401,13 @@ export default function Reportes() {
           {cargando && <CircularProgress />}
 
           {datos.length > 0 && (
+  <Button variant="outlined" color="success"
+    onClick={() => exportarEvaluaciones(datos)}>
+    Excel
+  </Button>
+)}
+
+          {datos.length > 0 && (
             <TableContainer component={Paper}>
               <Table size="small">
                 <TableHead sx={{ bgcolor: '#f5f5f5' }}>
@@ -443,13 +471,20 @@ export default function Reportes() {
                   Ver resumen
                 </Button>
                 {resumen && (
-                  <Button variant="outlined" color="error"
-                    onClick={() => window.open(
-                      `http://localhost:3001/api/pdf/reporte/empleado/${empleadoId}`, '_blank'
-                    )}>
-                    Descargar PDF
-                  </Button>
-                )}
+  <>
+    <Button variant="outlined" color="error"
+      onClick={() => window.open(
+        `http://localhost:3001/api/pdf/reporte/empleado/${empleadoId}`, '_blank'
+      )}>
+      PDF
+    </Button>
+    <Button variant="outlined" color="success"
+      onClick={() => exportarResumenEmpleado(resumen)}>
+      Excel
+    </Button>
+  </>
+)}
+                
               </Box>
             </CardContent>
           </Card>

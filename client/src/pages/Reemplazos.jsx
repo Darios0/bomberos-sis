@@ -8,6 +8,8 @@ import {
   TableHead, TableRow, TextField, Typography, Alert
 } from '@mui/material'
 
+import { exportarReemplazos } from '../utils/exportarExcel'
+
 export default function Reemplazos() {
   const { usuario }       = useAuth()
   const [reemplazos, setReemplazos] = useState([])
@@ -178,6 +180,15 @@ export default function Reemplazos() {
                 </TableCell>
               </TableRow>
             ))}
+            {reemplazos.length > 0 && (
+  <Button variant="outlined" color="success"
+    onClick={() => {
+      const [anio, mes] = filtroMes.split('-')
+      exportarReemplazos(reemplazos, parseInt(mes) - 1, parseInt(anio))
+    }}>
+    Excel
+  </Button>
+)}
             {reemplazos.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 3, color: 'text.secondary' }}>

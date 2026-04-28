@@ -13,6 +13,7 @@ import {
   InputLabel, MenuItem, Select, Typography, Alert, Paper, Divider
 } from '@mui/material'
 import { useAuth } from '../context/AuthContext'
+import { exportarDistributivo } from '../utils/exportarExcel'
 
 const GRUPOS       = ['GRUPO_1', 'GRUPO_2', 'GRUPO_3', 'ECU']
 const MESES        = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -671,9 +672,14 @@ setCambiosPendientes(true)
           
           
         )}
-        <Button variant="outlined" color="error" onClick={descargarPDF}>
-          
-  Descargar PDF
+    <Button variant="outlined" color="error" onClick={descargarPDF}>
+  PDF
+</Button>
+<Button variant="outlined" color="success"
+  onClick={() => exportarDistributivo(
+    grupo, mes, anio, estaciones, asignaciones, zonaAdmin, zonaEcu, jornadaEcu
+  )}>
+  Excel
 </Button>
       </Box>
 
