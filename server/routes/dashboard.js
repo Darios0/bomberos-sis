@@ -1,0 +1,103 @@
+const express = require('express')
+const prisma  = require('../prisma/client')
+const {
+  getGrupoOperativoPorFecha,
+  getResumenEcuPorFecha
+} = require('../utils/turnos')
+const router = express.Router()
+
+router.get('/hoy', async (req, res) => {
+  try {
+    const hoy     = new Date()
+    const fechaStr = hoy.toISOString().split('T')[0]
+    const fechaDate = new Date(fechaStr + 'T00:00:00.000Z')
+
+    const mes  = hoy.getMonth() + 1
+    const anio = hoy.getFullYear()
+
+    const grupoOperativo = getGrupoOperativoPorFecha(fechaDate)
+    const resumenEcu     = getResumenEcuPorFecha(fechaDate)
+
+    // Distributivo del mes actual
+    const distributivo = await prisma.distributivo.findFirst({
+      where: { mes, anio, grupo: grupoOperativo, esEcu: false },
+      include: {
+        items: {
+          orderBy: { orden: 'asc' },
+          include: { empleado: true, estacion: true }
+        }
+      }
+    })
+
+    // Ausencias activas hoy
+    const ausencias = await prisma.ausencia.findMany({
+      where: {
+        fechaInicio: { lte: fechaDate },
+        fechaFin:    { gte: fechaDate }
+      },
+      include: {
+        empleado: { select: { id: true, nombre: true, rango: true, tipoPersonal: true } }
+      }
+    })
+
+    // Reemplazos de hoy
+    const reemplazos = await prisma.reemplazo.findMany({
+      where: { fecha: fechaDate },
+      include: {
+        empleadoOriginal:  { select: { id: true, nombre: true } },
+        empleadoReemplazo: { select: { id: true, nombre: true } },
+        estacion:          { select: { id: true, nombre: true } }
+      }
+    })
+
+    // Notificaciones recientes no leídas (últimas 5)
+    const notificaciones = await prisma.notificacion.findMany({
+      orderBy: { creadoEn: 'desc' },
+      take: 5
+    })
+
+    // Totales generales
+    const totalEmpleados = await prisma.empleado.count({ where: { activo: true } })
+    const totalEstaciones = await prisma.estacion.count()
+
+    // Personal de turno hoy
+    const idsAusentes = new Set(ausencias.map(a => a.empleadoId))
+    const personalTurno = distributivo?.items || []
+    const totalTurno      = personalTurno.length
+    const totalDisponibles = personalTurno.filter(i => !idsAusentes.has(i.empleadoId)).length
+    const totalAusentes    = ausencias.length
+
+    // Estaciones con personal hoy
+    const estaciones = await prisma.estacion.findMany({ orderBy: { id: 'asc' } })
+    const porEstacion = estaciones.map(est => {
+      const personal = personalTurno.filter(i => i.estacionId === est.id)
+      return {
+        id:     est.id,
+        nombre: est.nombre,
+        total:  personal.length,
+        activos: personal.filter(i => !idsAusentes.has(i.empleadoId)).length
+      }
+    })
+
+    res.json({
+      fecha:         fechaStr,
+      grupoOperativo,
+      resumenEcu,
+      totalEmpleados,
+      totalEstaciones,
+      totalTurno,
+      totalDisponibles,
+      totalAusentes,
+      ausencias,
+      reemplazos,
+      notificaciones,
+      porEstacion,
+      distributivoExiste: !!distributivo
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error al obtener datos del dashboard' })
+  }
+})
+
+module.exports = router

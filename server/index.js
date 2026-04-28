@@ -16,6 +16,7 @@ const usuariosRoutes = require('./routes/usuarios')
 const pdfRoutes = require('./routes/pdf')
 const reportesRoutes = require('./routes/reportes')
 const reemplazosRoutes = require('./routes/reemplazos')
+const dashboardRoutes = require('./routes/dashboard')
 
 require('dotenv').config()
 
@@ -63,6 +64,7 @@ app.use('/api/ausencias',   ausenciasRoutes)
 app.use('/api/evaluaciones', evaluacionesRoutes)
 app.use('/api/distributivo', distributivoRoutes)
 app.use('/api/historial', historialRoutes)
+app.use('/api/dashboard', dashboardRoutes)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {

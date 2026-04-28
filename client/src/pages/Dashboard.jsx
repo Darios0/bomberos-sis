@@ -14,8 +14,10 @@ import Usuarios from './Usuarios'
 import Reportes from './Reportes'
 import Reemplazos from './Reemplazos'
 import Perfil from './Perfil'
+import DashboardHome from './DashboardHome'
 
 const MENU = [
+  { label: 'Inicio',       vista: 'inicio',       icono: '🏠', roles: null },
   { label: 'Calendario',   vista: 'calendario',   icono: '📅', roles: null },
   { label: 'Distributivo', vista: 'distributivo',  icono: '📋', roles: null },
   { label: 'Reemplazos',   vista: 'reemplazos',    icono: '🔄', roles: ['ADMIN','OPERADOR','EVALUADOR'] },
@@ -34,7 +36,7 @@ export default function Dashboard() {
   if (!usuario) return 'calendario'
   return 'calendario'
 }
-const [vista, setVista] = useState(vistaInicial)
+const [vista, setVista] = useState('inicio')
   const [colapsado, setColapsado] = useState(false)
 
   const ancho = colapsado ? SIDEBAR_COLAPSADO : SIDEBAR_ANCHO
@@ -185,14 +187,15 @@ const [vista, setVista] = useState(vistaInicial)
   p: vista === 'distributivo' ? 2 : 3,
   bgcolor: '#fafafa'
 }}>
-          {vista === 'calendario'   && <Calendario />}
-          {vista === 'distributivo' && <Distributivo />}
-          {vista === 'empleados'    && <Empleados />}
-          {vista === 'estaciones'   && <Estaciones />}
-          {vista === 'usuarios' && <Usuarios />}
-          {vista === 'reportes' && <Reportes />}
-          {vista === 'reemplazos' && <Reemplazos />}
-          {vista === 'perfil' && <Perfil />}
+        {vista === 'inicio'      && <DashboardHome />}
+        {vista === 'calendario'  && <Calendario />}
+        {vista === 'distributivo' && <Distributivo />}
+        {vista === 'reemplazos'  && <Reemplazos />}
+        {vista === 'empleados'   && <Empleados />}
+        {vista === 'estaciones'  && <Estaciones />}
+        {vista === 'reportes'    && <Reportes />}
+        {vista === 'usuarios'    && <Usuarios />}
+        {vista === 'perfil'      && <Perfil />}
         </Box>
       </Box>
     </Box>
