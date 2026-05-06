@@ -115,7 +115,17 @@ export default function Empleados() {
 
     try {
       if (editando) {
-        await api.put(`/empleados/${editando}`, data)
+  await api.put(`/empleados/${editando}`, {
+    nombre:         form.nombre,
+    cedula:         form.cedula,
+    rango:          form.rango,
+    tipoPersonal:   form.tipoPersonal,
+    grupoOperativo: form.grupoOperativo || null,
+    grupoEcu:       form.grupoEcu       || null,
+    estacionId:     form.estacionId     || null,
+    activo:         form.activo,
+    esParamedico:   Boolean(form.esParamedico)
+  })
       } else {
         await api.post('/empleados', data)
       }
@@ -328,7 +338,7 @@ export default function Empleados() {
           <FormControlLabel
   control={
     <Switch
-      checked={form.esParamedico}
+      checked={Boolean(form.esParamedico)}
       onChange={e => setForm({ ...form, esParamedico: e.target.checked })}
       color="error"
     />
