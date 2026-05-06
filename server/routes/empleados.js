@@ -33,7 +33,7 @@ router.get('/:id', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
-  const { nombre, cedula, rango, tipoPersonal, grupoOperativo, grupoEcu, estacionId } = req.body
+ const { nombre, cedula, rango, tipoPersonal, grupoOperativo, grupoEcu, estacionId, esParamedico } = req.body
   if (!nombre || !cedula || !rango || !tipoPersonal) {
     return res.status(400).json({ error: 'Nombre, cédula, rango y tipo son requeridos' })
   }
@@ -43,7 +43,8 @@ router.post('/', async (req, res) => {
         nombre, cedula, rango, tipoPersonal,
         grupoOperativo: grupoOperativo || null,
         grupoEcu:       grupoEcu       || null,
-        estacionId:     estacionId     || null
+        estacionId:     estacionId     || null,
+        esParamedico:   esParamedico   || false
       }
     })
     res.status(201).json(empleado)
@@ -56,7 +57,7 @@ router.post('/', async (req, res) => {
 })
 
 router.put('/:id', async (req, res) => {
-  const { nombre, cedula, rango, tipoPersonal, grupoOperativo, grupoEcu, estacionId, activo } = req.body
+  const { nombre, cedula, rango, tipoPersonal, grupoOperativo, grupoEcu, estacionId, activo, esParamedico } = req.body
   try {
     const empleado = await prisma.empleado.update({
       where: { id: parseInt(req.params.id) },
@@ -64,7 +65,8 @@ router.put('/:id', async (req, res) => {
         nombre, cedula, rango, tipoPersonal, activo,
         grupoOperativo: grupoOperativo || null,
         grupoEcu:       grupoEcu       || null,
-        estacionId:     estacionId     || null
+        estacionId:     estacionId     || null,
+        esParamedico:   esParamedico ?? false
       }
     })
     res.json(empleado)

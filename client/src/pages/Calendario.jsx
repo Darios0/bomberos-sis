@@ -9,6 +9,7 @@ import {
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import { getColorTiempoEstacion, calcularMesesConsecutivos } from '../utils/colorEstacion'
 
 const COLOR_GRUPO = {
   GRUPO_1: { bg: '#c62828', label: 'Grupo 1' },
@@ -32,27 +33,37 @@ const COLOR_AUSENCIA = {
 }
 
 // ── Tarjeta de persona ─────────────────────────────────────────
-function TarjetaPersona({ emp, esAdmin }) {
+function TarjetaPersona({ emp, esAdmin, estacionId }) {
   const tieneReemplazo = !!emp.reemplazo
+
+  const meses = estacionId && !tieneReemplazo && !emp.ausente
+    ? calcularMesesConsecutivos(emp.historialEstaciones || [], estacionId)
+    : 0
+  const colorInfo = getColorTiempoEstacion(meses)
+
+const bgColor = tieneReemplazo ? '#f3e5f5' :
+                emp.ausente    ? '#fff3e0' :
+                emp.esParamedico ? '#fce4ec' : 'transparent'
+
+const borderColor = tieneReemplazo ? '#ce93d8' :
+                    emp.ausente    ? '#ffcc02' :
+                    emp.esParamedico ? '#e91e63' : 'transparent'
 
   return (
     <Box sx={{ mb: 0.3 }}>
-      {/* Persona original */}
       <Box sx={{
         display: 'flex', justifyContent: 'space-between',
         alignItems: 'flex-start', py: 0.4, px: 0.5,
         borderRadius: 0.5,
-        bgcolor: tieneReemplazo ? '#f3e5f5' :
-                 emp.ausente    ? '#fff3e0' :
-                 esAdmin        ? '#e3f2fd' : 'transparent',
-        border: tieneReemplazo ? '1px solid #ce93d8' :
-                emp.ausente    ? '1px solid #ffcc02'  : '1px solid transparent'
+        bgcolor: bgColor,
+        border: `1px solid ${borderColor}`
       }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
             <Typography variant="caption" sx={{
               fontWeight: 500, fontSize: 11,
-              color: emp.ausente || tieneReemplazo ? '#7b1fa2' : 'text.primary',
+              color: emp.ausente || tieneReemplazo ? '#7b1fa2' :
+                     colorInfo ? colorInfo.texto : 'text.primary',
               textDecoration: emp.ausente || tieneReemplazo ? 'line-through' : 'none'
             }}>
               {emp.nombre}
@@ -61,6 +72,10 @@ function TarjetaPersona({ emp, esAdmin }) {
               <Chip label="Adm." size="small"
                 sx={{ fontSize: 9, height: 14, bgcolor: '#bbdefb', color: '#0d47a1' }} />
             )}
+            {emp.esParamedico && (
+  <Chip label="Param." size="small"
+    sx={{ fontSize: 8, height: 14, bgcolor: '#e91e63', color: 'white' }} />
+)}
             {emp.ausente && emp.ausenciaInfo && (
               <Chip label={emp.ausenciaInfo.tipo} size="small"
                 sx={{ fontSize: 9, height: 14,
@@ -71,9 +86,19 @@ function TarjetaPersona({ emp, esAdmin }) {
               <Chip label="Reemplazado" size="small"
                 sx={{ fontSize: 9, height: 14, bgcolor: '#9c27b0', color: 'white' }} />
             )}
+            {colorInfo && !emp.ausente && !tieneReemplazo && (
+              <Chip label={colorInfo.label} size="small"
+                sx={{ fontSize: 8, height: 14,
+                  bgcolor: colorInfo.border, color: 'white' }} />
+            )}
           </Box>
           <Typography variant="caption" color="text.secondary" fontSize={10}>
             {emp.rango}
+            {emp.ausente && emp.ausenciaInfo?.horaInicio && (
+              <span style={{ color: '#e65100' }}>
+                {' '}· Permiso {emp.ausenciaInfo.horaInicio}–{emp.ausenciaInfo.horaFin}
+              </span>
+            )}
           </Typography>
         </Box>
         <Box sx={{
@@ -82,13 +107,11 @@ function TarjetaPersona({ emp, esAdmin }) {
         }} />
       </Box>
 
-      {/* Reemplazo — mostrado en morado debajo */}
       {tieneReemplazo && (
         <Box sx={{
           display: 'flex', alignItems: 'center', gap: 0.5,
           py: 0.3, px: 0.5, ml: 1,
-          borderRadius: 0.5,
-          bgcolor: '#f3e5f5',
+          borderRadius: 0.5, bgcolor: '#f3e5f5',
           border: '1px solid #ce93d8'
         }}>
           <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#9c27b0', flexShrink: 0 }} />
@@ -263,10 +286,39 @@ export default function Calendario() {
                 <Chip key={tipo} label={tipo} size="small"
                   sx={{ bgcolor: color, color: 'white', fontSize: 10, height: 18 }} />
               ))}
+              {/* Leyenda tiempo en estación */}
+<Box sx={{ mt: 1.5, p: 1.5, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+  <Typography variant="caption" fontWeight="bold" display="block" mb={0.5}>
+    Tiempo en estación
+  </Typography>
+  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+    {[
+      { label: '1 mes',    color: '#4caf50' },
+      { label: '2 meses',  color: '#1565c0' },
+      { label: '3 meses',  color: '#ef6c00' },
+      { label: '+3 meses', color: '#c62828' },
+    ].map(c => (
+      <Chip key={c.label} label={c.label} size="small"
+        sx={{ bgcolor: c.color, color: 'white', fontSize: 10, height: 18 }} />
+    ))}
+  </Box>
+  <Box sx={{ mt: 1, p: 1.5, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+  <Typography variant="caption" fontWeight="bold" display="block" mb={0.5}>
+    Tipos de personal
+  </Typography>
+  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+    <Chip label="Paramédico" size="small"
+      sx={{ bgcolor: '#e91e63', color: 'white', fontSize: 10, height: 18 }} />
+    <Chip label="Administrativo" size="small"
+      sx={{ bgcolor: '#0288d1', color: 'white', fontSize: 10, height: 18 }} />
+  </Box>
+</Box>
+</Box>
             </Box>
           </Box>
         )}
       </Box>
+      
 
       {/* Panel detalle */}
       <Box sx={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>

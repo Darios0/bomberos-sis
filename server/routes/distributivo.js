@@ -6,7 +6,9 @@ const router  = express.Router()
 router.get('/personal/:grupo/:mes/:anio', async (req, res) => {
   try {
     const { grupo, mes, anio } = req.params
-    const esEcu = grupo === 'ECU'
+    const esEcu  = grupo === 'ECU'
+    const mesInt = parseInt(mes)
+    const anioInt = parseInt(anio)
 
     const wherePersonal = esEcu
       ? { tipoPersonal: 'ECU', activo: true }
@@ -24,18 +26,24 @@ router.get('/personal/:grupo/:mes/:anio', async (req, res) => {
         estacion: { select: { id: true, nombre: true } },
         ausencias: {
           where: {
-            fechaInicio: { lte: new Date(`${anio}-${String(mes).padStart(2,'0')}-28`) },
-            fechaFin:    { gte: new Date(`${anio}-${String(mes).padStart(2,'0')}-01`) }
+            tipo:        'VACACIONES',
+            fechaInicio: { lte: new Date(`${anioInt}-${String(mesInt).padStart(2,'0')}-28`) },
+            fechaFin:    { gte: new Date(`${anioInt}-${String(mesInt).padStart(2,'0')}-01`) }
           }
+        },
+        historialEstaciones: {
+          include: { estacion: { select: { id: true, nombre: true } } },
+          orderBy: { fechaInicio: 'desc' }
         }
       },
       orderBy: { nombre: 'asc' }
     })
 
-    const distributivo = await prisma.distributivo.findFirst({
+    // Buscar distributivo del mes actual
+    let distributivo = await prisma.distributivo.findFirst({
       where: {
-        mes:   parseInt(mes),
-        anio:  parseInt(anio),
+        mes:   mesInt,
+        anio:  anioInt,
         grupo: esEcu ? null : grupo,
         esEcu
       },
@@ -47,7 +55,64 @@ router.get('/personal/:grupo/:mes/:anio', async (req, res) => {
       }
     })
 
-    res.json({ personal, distributivo })
+    // Si no existe distributivo para este mes, buscar el del mes anterior
+    if (!distributivo || distributivo.items.length === 0) {
+      const mesAnterior  = mesInt === 1 ? 12 : mesInt - 1
+      const anioAnterior = mesInt === 1 ? anioInt - 1 : anioInt
+
+      const distributivoAnterior = await prisma.distributivo.findFirst({
+        where: {
+          mes:   mesAnterior,
+          anio:  anioAnterior,
+          grupo: esEcu ? null : grupo,
+          esEcu
+        },
+        include: {
+          items: {
+            orderBy: { orden: 'asc' },
+            include: { empleado: true, estacion: true }
+          }
+        }
+      })
+
+      if (distributivoAnterior) {
+        distributivo = {
+          ...distributivoAnterior,
+          id:       null,
+          mes:      mesInt,
+          anio:     anioInt,
+          esNuevo:  true,
+          items:    distributivoAnterior.items
+        }
+      }
+    }
+
+   // Enriquecer items del distributivo con historialEstaciones
+if (distributivo?.items) {
+  const idsEmpleados = distributivo.items.map(i => i.empleadoId)
+  const empleadosConHistorial = await prisma.empleado.findMany({
+    where: { id: { in: idsEmpleados } },
+    include: {
+      historialEstaciones: {
+        include: { estacion: { select: { id: true, nombre: true } } },
+        orderBy: { fechaInicio: 'desc' }
+      }
+    }
+  })
+  const mapaHistorial = {}
+  empleadosConHistorial.forEach(e => {
+    mapaHistorial[e.id] = e.historialEstaciones
+  })
+  distributivo.items = distributivo.items.map(item => ({
+    ...item,
+    empleado: {
+      ...item.empleado,
+      historialEstaciones: mapaHistorial[item.empleadoId] || []
+    }
+  }))
+}
+
+res.json({ personal, distributivo })
   } catch (error) {
     console.error('Error en /personal:', error)
     res.status(500).json({ error: 'Error al obtener personal' })

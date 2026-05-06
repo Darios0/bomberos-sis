@@ -35,6 +35,7 @@ model Empleado {
   grupoOperativo      GrupoOperativo?
   grupoEcu            GrupoEcu?
   estacionId          Int?
+  esParamedico        Boolean             @default(false)
   activo              Boolean             @default(true)
   creadoEn            DateTime            @default(now())
   estacion            Estacion?           @relation(fields: [estacionId], references: [id])

@@ -14,6 +14,7 @@ import {
 } from '@mui/material'
 import { useAuth } from '../context/AuthContext'
 import { exportarDistributivo } from '../utils/exportarExcel'
+import { getColorTiempoEstacion, calcularMesesConsecutivos } from '../utils/colorEstacion'
 
 const GRUPOS       = ['GRUPO_1', 'GRUPO_2', 'GRUPO_3', 'ECU']
 const MESES        = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -23,41 +24,81 @@ const ECU_GRUPOS   = ['ECU_1','ECU_2','ECU_3','ECU_4']
 const EST_ANCHO = '1fr'
 
 // ── Tarjeta draggable ──────────────────────────────────────────
-function TarjetaEmpleado({ emp, bloqueado }) {
+function TarjetaEmpleado({ emp, bloqueado, estacionId }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: String(emp.id), disabled: bloqueado })
+
+  const meses     = estacionId
+    ? calcularMesesConsecutivos(emp.historialEstaciones || [], estacionId)
+    : 0
+  const colorInfo = getColorTiempoEstacion(meses)
+
+const bgColor = bloqueado
+  ? '#fff8e1'
+  : emp.esParamedico
+    ? '#fce4ec'
+    : emp.esAdmin
+      ? '#e3f2fd'
+      : '#ffffff'
+
+const borderColor = bloqueado
+  ? '#ed6c02'
+  : emp.esParamedico
+    ? '#e91e63'
+    : emp.esAdmin
+      ? '#0288d1'
+      : '#e0e0e0'
+
+const textoColor = '#1a1a1a'
 
   return (
     <Box
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.3 : 1
+      }}
       {...(bloqueado ? {} : { ...attributes, ...listeners })}
       sx={{
         p: '3px 6px', mb: 0.5, borderRadius: 1,
-        border: '1px solid',
-        borderColor: bloqueado     ? 'warning.light' :
-                     emp.esAdmin  ? 'info.light'    :
-                     emp.esJornadaEcu ? '#9c27b0'   : 'divider',
-        bgcolor: bloqueado         ? '#fff8e1' :
-                 emp.esAdmin      ? '#e3f2fd' :
-                 emp.esJornadaEcu ? '#f3e5f5' : '#fff',
+        border: `1.5px solid ${borderColor}`,
+        bgcolor: bgColor,
         cursor: bloqueado ? 'not-allowed' : 'grab',
-        userSelect: 'none', display: 'flex',
-        alignItems: 'center', justifyContent: 'space-between', minHeight: 32
+        userSelect: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        minHeight: 34
       }}
     >
-      <Box sx={{ minWidth: 0 }}>
-        <Typography variant="caption" fontWeight={600} display="block" lineHeight={1.2}
-  sx={{ wordBreak: 'break-word', whiteSpace: 'normal', color: '#1a1a1a' }}>
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Typography variant="caption" fontWeight={600} display="block"
+  lineHeight={1.2} sx={{ fontSize: 11, wordBreak: 'break-word', whiteSpace: 'normal', color: textoColor }}>
   {emp.nombre}
 </Typography>
-<Typography variant="caption" fontSize={10}
-  sx={{ whiteSpace: 'normal', color: '#444444' }}>
-          {emp.rango}
-          {emp.esAdmin      && ' · Adm.'}
-          {emp.esJornadaEcu && ' · Jorn.'}
-          {emp.grupoEcu     && ` · ${emp.grupoEcu.replace('_',' ')}`}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, flexWrap: 'wrap' }}>
+          <Typography variant="caption" fontSize={10}
+            sx={{ color: textoColor === 'white' ? 'rgba(255,255,255,0.85)' : '#444', whiteSpace: 'normal' }}>
+            {emp.rango}
+            {emp.esParamedico && ' · Param.'}
+            {emp.esAdmin      && ' · Adm.'}
+            {emp.esJornadaEcu && ' · Jorn.'}
+            {emp.grupoEcu     && ` · ${emp.grupoEcu.replace('_',' ')}`}
+          </Typography>
+       {colorInfo && (
+  <Chip
+    label={colorInfo.label}
+    size="small"
+    sx={{
+      fontSize: 8, height: 14,
+      bgcolor: colorInfo.border,
+      color: colorInfo.nivel === 'verde' || colorInfo.nivel === 'azul' ? '#1a1a1a' : 'white',
+      flexShrink: 0
+    }}
+  />
+)}
+        </Box>
       </Box>
       {bloqueado && emp.motivoBloqueo && (
         <Chip label={emp.motivoBloqueo} size="small" color="warning"
@@ -87,8 +128,8 @@ function ZonaEstacion({ estacion, items, puedeEditar, onQuitar }) {
 </Typography>
       <SortableContext items={operativos.map(i => String(i.id))} strategy={verticalListSortingStrategy}>
         {operativos.map(emp => (
-          <Box key={emp.id} sx={{ position: 'relative', pr: puedeEditar ? 2 : 0 }}>
-            <TarjetaEmpleado emp={emp} bloqueado={false} />
+  <Box key={emp.id} sx={{ position: 'relative', pr: puedeEditar ? 2 : 0 }}>
+    <TarjetaEmpleado emp={emp} bloqueado={false} estacionId={estacion.id} />
             {puedeEditar && (
               <Button onClick={() => onQuitar(emp.id, estacion.id)}
                 sx={{ position:'absolute', right:-4, top:0, minWidth:18, p:0, fontSize:15, color:'error.main', lineHeight:1 }}>
@@ -104,8 +145,8 @@ function ZonaEstacion({ estacion, items, puedeEditar, onQuitar }) {
             <Typography variant="caption" fontSize={9} color="info.main">ADM.</Typography>
           </Divider>
           {admins.map(emp => (
-            <Box key={emp.id} sx={{ position: 'relative', pr: puedeEditar ? 2 : 0 }}>
-              <TarjetaEmpleado emp={emp} bloqueado={false} />
+  <Box key={emp.id} sx={{ position: 'relative', pr: puedeEditar ? 2 : 0 }}>
+    <TarjetaEmpleado emp={emp} bloqueado={false} estacionId={estacion.id} />
               {puedeEditar && (
                 <Button onClick={() => onQuitar(emp.id, estacion.id)}
                   sx={{ position:'absolute', right:-4, top:0, minWidth:18, p:0, fontSize:15, color:'error.main', lineHeight:1 }}>
@@ -348,9 +389,14 @@ export default function Distributivo() {
 
 if (distributivo?.items?.length > 0) {
   distributivo.items.forEach(item => {
-    // Marcar TODOS los items como asignados para excluirlos de la lista
     idsAsignados.add(item.empleadoId)
-    const emp = { ...item.empleado, esAdmin: item.esAdmin, esEcu: item.esEcu }
+    // Incluir historialEstaciones del empleado enriquecido
+    const emp = {
+      ...item.empleado,
+      esAdmin:             item.esAdmin,
+      esEcu:               item.esEcu,
+      historialEstaciones: item.empleado?.historialEstaciones || []
+    }
     if (item.esAdmin && !item.estacionId) {
       nuevoAdmin.push(emp)
     } else if (item.estacionId && nuevasAsig[item.estacionId] !== undefined) {
@@ -378,23 +424,42 @@ if (distEcu?.distributivo?.items?.length > 0) {
   })
 }
 
-      setAsignaciones(nuevasAsig)
+
       setZonaAdmin(nuevoAdmin)
       setZonaEcu(nuevoEcu)
       setJornadaEcu(nuevoJornada)
 
-      setListaPersonal(
-        personal
-          .filter(p => !idsAsignados.has(p.id))
-          .map(p => {
-            const ausenciaActiva = p.ausencias?.some(a => {
-              const ini = new Date(a.fechaInicio).toISOString().split('T')[0]
-              const fin = new Date(a.fechaFin).toISOString().split('T')[0]
-              return ini <= hoy && fin >= hoy
-            })
-            return { ...p, bloqueado: ausenciaActiva, motivoBloqueo: p.ausencias?.[0]?.tipo || null }
-          })
-      )
+ // Ids de empleados en vacaciones este mes
+const idsEnVacaciones = new Set(
+  personal
+    .filter(p => p.ausencias?.length > 0)
+    .map(p => p.id)
+)
+
+// Quitar de asignaciones a los que están en vacaciones
+const nuevasAsigSinVac = {}
+todasEst.forEach(e => { nuevasAsigSinVac[e.id] = [] })
+
+Object.entries(nuevasAsig).forEach(([estId, emps]) => {
+  nuevasAsigSinVac[estId] = emps.filter(emp => !idsEnVacaciones.has(emp.id))
+})
+
+setAsignaciones(nuevasAsigSinVac)
+
+// Construir lista: sin asignar + los que estaban asignados pero ahora están en vacaciones
+const asignadosEnVacaciones = personal
+  .filter(p => idsAsignados.has(p.id) && idsEnVacaciones.has(p.id))
+  .map(p => ({ ...p, bloqueado: true, motivoBloqueo: 'VACACIONES' }))
+
+const sinAsignarNormal = personal
+  .filter(p => !idsAsignados.has(p.id))
+  .map(p => ({
+    ...p,
+    bloqueado:     idsEnVacaciones.has(p.id),
+    motivoBloqueo: idsEnVacaciones.has(p.id) ? 'VACACIONES' : null
+  }))
+
+setListaPersonal([...sinAsignarNormal, ...asignadosEnVacaciones])
     } catch (e) {
       console.error(e)
       setError('Error al cargar el distributivo')
@@ -693,16 +758,43 @@ setCambiosPendientes(true)
   onDragStart={handleDragStart}
   onDragEnd={handleDragEnd}
   onDragOver={handleDragOver}
+  
 >
+  <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+  <Typography variant="caption" color="text.secondary" fontWeight={500}>
+    Tiempo en estación:
+  </Typography>
+  {[
+  { label: '1 mes',    color: '#4caf50', texto: '#1a1a1a' },
+  { label: '2 meses',  color: '#0097a7', texto: '#1a1a1a' },
+  { label: '3 meses',  color: '#ef6c00', texto: 'white'   },
+  { label: '+3 meses', color: '#c62828', texto: 'white'   },
+].map(c => (
+    <Chip
+    key={c.label}
+    label={c.label}
+    size="small"
+    sx={{
+      bgcolor: c.color,
+      color: c.texto,
+      fontSize: 10,
+      height: 20,
+      fontWeight: 600
+    }}
+    />
+  ))
+}
+ 
+</Box>
         <Box sx={{ display:'flex', gap:2, alignItems:'flex-start' }}>
 
           {/* Panel izquierdo */}
-          <Paper sx={{ width:185, flexShrink:0, p:1.5, maxHeight:'82vh', overflowY:'auto', position:'sticky', top:0 }}>
-            <Typography variant="subtitle2" fontWeight="bold" mb={1}>
-              Sin asignar ({disponibles.length})
-            </Typography>
-            <ListaSinAsignar disponibles={disponibles} bloqueados={bloqueados} />
-          </Paper>
+          <Paper sx={{ width: 200, flexShrink: 0, p: 1, maxHeight: '82vh', overflowY: 'auto', position: 'sticky', top: 0 }}>
+  <Typography variant="subtitle2" fontWeight="bold" mb={0.5} fontSize={12}>
+    Sin asignar ({disponibles.length})
+  </Typography>
+  <ListaSinAsignar disponibles={disponibles} bloqueados={bloqueados} />
+</Paper>
 
           {/* Panel derecho con scroll */}
       <Box sx={{ flex:1, minWidth: 0 }}>

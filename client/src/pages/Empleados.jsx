@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import api from '../api/axios'
 import {
   Box, Button, Chip, CircularProgress, Dialog, DialogActions,
-  DialogContent, DialogTitle, FormControl, InputLabel, MenuItem,
-  Paper, Select, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, TextField, Typography, Alert, Tabs, Tab
+  DialogContent, DialogTitle, FormControl, FormControlLabel,
+  InputLabel, MenuItem, Paper, Select, Switch, Table, TableBody,
+  TableCell, TableContainer, TableHead, TableRow, TextField,
+  Typography, Alert, Tabs, Tab
 } from '@mui/material'
 import EmpleadoDetalle from './EmpleadoDetalle'
 import { usePermisos } from '../hooks/usePermisos'
@@ -20,7 +21,8 @@ const TIPOS             = ['OPERATIVO', 'ECU', 'ADMINISTRATIVO']
 const INICIAL = {
   nombre: '', cedula: '', rango: '',
   tipoPersonal: 'OPERATIVO',
-  grupoOperativo: '', grupoEcu: '', estacionId: ''
+  grupoOperativo: '', grupoEcu: '', estacionId: '',
+  esParamedico: false
 }
 
 const COLOR_TIPO = { OPERATIVO: 'error', ECU: 'warning', ADMINISTRATIVO: 'info' }
@@ -78,7 +80,8 @@ export default function Empleados() {
       tipoPersonal:   emp.tipoPersonal,
       grupoOperativo: emp.grupoOperativo || '',
       grupoEcu:       emp.grupoEcu || '',
-      estacionId:     emp.estacionId || ''
+      estacionId:     emp.estacionId || '',
+      esParamedico:   emp.esParamedico || false
     })
     setError('')
     setDialogo(true)
@@ -186,6 +189,7 @@ export default function Empleados() {
               <TableCell><b>Rango</b></TableCell>
               <TableCell><b>Tipo</b></TableCell>
               <TableCell><b>Grupo</b></TableCell>
+              <TableCell><b>Paramédico</b></TableCell>
               <TableCell><b>Estación</b></TableCell>
               <TableCell><b>Estado</b></TableCell>
               <TableCell><b>Acciones</b></TableCell>
@@ -197,6 +201,12 @@ export default function Empleados() {
                 <TableCell>{emp.nombre}</TableCell>
                 <TableCell>{emp.cedula}</TableCell>
                 <TableCell>{emp.rango}</TableCell>
+                <TableCell>
+  {emp.esParamedico && (
+    <Chip label="Paramédico" size="small"
+      sx={{ bgcolor: '#ff69b4', color: 'white', fontSize: 10 }} />
+  )}
+</TableCell>
                 <TableCell>
                   <Chip
                     label={emp.tipoPersonal}
@@ -315,6 +325,25 @@ export default function Empleados() {
               ))}
             </Select>
           </FormControl>
+          <FormControlLabel
+  control={
+    <Switch
+      checked={form.esParamedico}
+      onChange={e => setForm({ ...form, esParamedico: e.target.checked })}
+      color="error"
+    />
+  }
+  label={
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Typography variant="body2">Es paramédico</Typography>
+      {form.esParamedico && (
+        <Chip label="Paramédico" size="small"
+          sx={{ bgcolor: '#ff69b4', color: 'white', fontSize: 10 }} />
+      )}
+    </Box>
+  }
+  sx={{ mt: 1 }}
+/>
         </DialogContent>
         <DialogActions>
           <Button onClick={cerrar}>Cancelar</Button>
