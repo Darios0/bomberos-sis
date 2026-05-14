@@ -45,6 +45,7 @@ model Empleado {
   evaluaciones        Evaluacion[]
   historialEstaciones HistorialEstacion[]
   distributivoItems   DistributivoItem[]
+  gruposEspecializados EmpleadoGrupoEspecializado[]
   reemplazosComoOriginal  Reemplazo[] @relation("ReemplazoOriginal")
 reemplazosComoSuplente  Reemplazo[] @relation("ReemplazoSuplente")
 }
@@ -212,4 +213,22 @@ model Reemplazo {
   empleadoOriginal  Empleado  @relation("ReemplazoOriginal",  fields: [empleadoOriginalId],  references: [id])
   empleadoReemplazo Empleado  @relation("ReemplazoSuplente",  fields: [empleadoReemplazoId], references: [id])
   estacion          Estacion? @relation(fields: [estacionId], references: [id])
+}
+
+model GrupoEspecializado {
+  id          Int                      @id @default(autoincrement())
+  nombre      String                   @unique
+  color       String                   @default("#607d8b")
+  descripcion String?
+  empleados   EmpleadoGrupoEspecializado[]
+}
+
+model EmpleadoGrupoEspecializado {
+  id                  Int                @id @default(autoincrement())
+  empleadoId          Int
+  grupoEspecializadoId Int
+  empleado            Empleado           @relation(fields: [empleadoId], references: [id])
+  grupoEspecializado  GrupoEspecializado @relation(fields: [grupoEspecializadoId], references: [id])
+
+  @@unique([empleadoId, grupoEspecializadoId])
 }

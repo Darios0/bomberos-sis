@@ -9,16 +9,21 @@ const { determinarOficialControl } = require('../utils/oficialControl')
 
 router.get('/hoy', async (req, res) => {
   try {
+
+
     // Ecuador = UTC-5
  const hoy = new Date()
 
-hoy.setHours(hoy.getHours() - 0)
+const fechaStr =
+  hoy.getFullYear() + '-' +
+  String(hoy.getMonth() + 1).padStart(2, '0') + '-' +
+  String(hoy.getDate()).padStart(2, '0')
 
-
-
-const fechaStr  = hoy.toISOString().split('T')[0]
-
-const fechaDate = new Date(fechaStr + 'T00:00:00.000Z')
+const fechaDate = new Date(
+  hoy.getFullYear(),
+  hoy.getMonth(),
+  hoy.getDate()
+)
 
 const mes  = hoy.getMonth() + 1
 const anio = hoy.getFullYear()

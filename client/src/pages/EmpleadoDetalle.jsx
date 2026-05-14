@@ -24,6 +24,9 @@ export default function EmpleadoDetalle({ empleado, onCerrar, onActualizar }) {
   const [dialogoEval, setDialogoEval] = useState(false)
   const [error, setError]           = useState('')
   const { puedeRegistrarAusencias, puedeGestionarPersonal } = usePermisos()
+  const [gruposEsp, setGruposEsp]       = useState([])
+  const [todosGrupos, setTodosGrupos]   = useState([])
+  const [cargandoGrupos, setCargandoGrupos] = useState(false)
 
   const [formAus, setFormAus] = useState({
     tipo: 'PERMISO', fechaInicio: '', fechaFin: '',
@@ -33,14 +36,18 @@ export default function EmpleadoDetalle({ empleado, onCerrar, onActualizar }) {
 
 const cargar = async () => {
   try {
-    const [a, e, h] = await Promise.all([
+    const [a, e, h, gEmp, gTodos] = await Promise.all([
       api.get(`/ausencias/empleado/${empleado.id}`),
       api.get(`/evaluaciones/empleado/${empleado.id}`),
-      api.get(`/historial/empleado/${empleado.id}`)
+      api.get(`/historial/empleado/${empleado.id}`),
+      api.get(`/grupos-especializados/empleado/${empleado.id}`),
+      api.get('/grupos-especializados')
     ])
     setAusencias(a.data)
     setEvaluaciones(e.data)
     setHistorial(h.data)
+    setGruposEsp(gEmp.data)
+    setTodosGrupos(gTodos.data)
   } catch {}
 }
 
@@ -130,10 +137,11 @@ const cargar = async () => {
       </DialogTitle>
 
       <DialogContent>
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
+<Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
   <Tab label="Ausencias y permisos" />
   <Tab label="Méritos y deméritos" />
   <Tab label="Historial de estaciones" />
+  <Tab label="Grupos especializados" />
 </Tabs>
 
         {/* TAB AUSENCIAS */}
@@ -292,6 +300,77 @@ const cargar = async () => {
         </Box>
       )
     })}
+
+    {/* TAB GRUPOS ESPECIALIZADOS */}
+{tab === 3 && (
+  <Box>
+    <Typography variant="subtitle2" fontWeight="bold" mb={1}>
+      Grupos especializados asignados
+    </Typography>
+
+    {/* Grupos actuales */}
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+      {gruposEsp.length === 0 && (
+        <Typography variant="caption" color="text.secondary">
+          Sin grupos especializados asignados
+        </Typography>
+      )}
+      {gruposEsp.map(g => (
+        <Chip
+          key={g.id}
+          label={g.nombre}
+          onDelete={puedeRegistrarAusencias ? async () => {
+            await api.delete('/grupos-especializados/quitar', {
+              data: { empleadoId: empleado.id, grupoEspecializadoId: g.id }
+            })
+            cargar()
+          } : undefined}
+          sx={{
+            bgcolor: g.color,
+            color: 'white',
+            fontWeight: 'bold',
+            '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.7)' }
+          }}
+        />
+      ))}
+    </Box>
+
+    {/* Agregar grupo */}
+    {puedeRegistrarAusencias && (
+      <>
+        <Divider sx={{ mb: 2 }} />
+        <Typography variant="subtitle2" fontWeight="bold" mb={1}>
+          Agregar grupo
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          {todosGrupos
+            .filter(g => !gruposEsp.find(ge => ge.id === g.id))
+            .map(g => (
+              <Chip
+                key={g.id}
+                label={`+ ${g.nombre}`}
+                onClick={async () => {
+                  await api.post('/grupos-especializados/asignar', {
+                    empleadoId:           empleado.id,
+                    grupoEspecializadoId: g.id
+                  })
+                  cargar()
+                }}
+                variant="outlined"
+                sx={{
+                  borderColor: g.color,
+                  color: g.color,
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: g.color + '20' }
+                }}
+              />
+            ))}
+        </Box>
+      </>
+    )}
+  </Box>
+)}
 
     {/* Resumen por estación */}
     {historial.length > 0 && (

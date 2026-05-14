@@ -101,6 +101,23 @@ const borderColor = tieneReemplazo ? '#ce93d8' :
             )}
           </Typography>
         </Box>
+
+        
+        {/* Grupos especializados */}
+{emp.gruposEspecializados?.length > 0 && (
+  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.3, mt: 0.3 }}>
+    {emp.gruposEspecializados.map(g => (
+      <Box key={g.id} sx={{
+        px: 0.5, borderRadius: 0.5,
+        bgcolor: g.color,
+        fontSize: 8, color: 'white',
+        fontWeight: 'bold', lineHeight: '14px'
+      }}>
+        {g.nombre}
+      </Box>
+    ))}
+  </Box>
+)}
         <Box sx={{
           width: 8, height: 8, borderRadius: '50%', flexShrink: 0, mt: 0.5,
           bgcolor: emp.ausente || tieneReemplazo ? 'warning.main' : 'success.main'

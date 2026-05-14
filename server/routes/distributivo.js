@@ -91,26 +91,35 @@ router.get('/personal/:grupo/:mes/:anio', async (req, res) => {
    // Enriquecer items del distributivo con historialEstaciones
 if (distributivo?.items) {
   const idsEmpleados = distributivo.items.map(i => i.empleadoId)
-  const empleadosConHistorial = await prisma.empleado.findMany({
-    where: { id: { in: idsEmpleados } },
-    include: {
-      historialEstaciones: {
-        include: { estacion: { select: { id: true, nombre: true } } },
-        orderBy: { fechaInicio: 'desc' }
-      }
+const empleadosConHistorial = await prisma.empleado.findMany({
+  where: { id: { in: idsEmpleados } },
+  include: {
+    historialEstaciones: {
+      include: { estacion: { select: { id: true, nombre: true } } },
+      orderBy: { fechaInicio: 'desc' }
+    },
+    gruposEspecializados: {
+      include: { grupoEspecializado: true }
     }
-  })
-  const mapaHistorial = {}
-  empleadosConHistorial.forEach(e => {
-    mapaHistorial[e.id] = e.historialEstaciones
-  })
-  distributivo.items = distributivo.items.map(item => ({
-    ...item,
-    empleado: {
-      ...item.empleado,
-      historialEstaciones: mapaHistorial[item.empleadoId] || []
-    }
-  }))
+  }
+})
+
+const mapaHistorial = {}
+empleadosConHistorial.forEach(e => {
+  mapaHistorial[e.id] = {
+    historialEstaciones: e.historialEstaciones,
+    gruposEspecializados: e.gruposEspecializados.map(g => g.grupoEspecializado)
+  }
+})
+
+distributivo.items = distributivo.items.map(item => ({
+  ...item,
+  empleado: {
+    ...item.empleado,
+    historialEstaciones:  mapaHistorial[item.empleadoId]?.historialEstaciones  || [],
+    gruposEspecializados: mapaHistorial[item.empleadoId]?.gruposEspecializados || []
+  }
+}))
 }
 
 

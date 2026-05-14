@@ -6,9 +6,18 @@ router.get('/', async (req, res) => {
   try {
     const empleados = await prisma.empleado.findMany({
       orderBy: { nombre: 'asc' },
-      include: { estacion: { select: { id: true, nombre: true } } }
+      include: {
+        estacion: { select: { id: true, nombre: true } },
+        gruposEspecializados: {
+          include: { grupoEspecializado: true }
+        }
+      }
     })
-    res.json(empleados)
+    const resultado = empleados.map(emp => ({
+      ...emp,
+      gruposEspecializados: emp.gruposEspecializados.map(g => g.grupoEspecializado)
+    }))
+    res.json(resultado)
   } catch {
     res.status(500).json({ error: 'Error al obtener empleados' })
   }

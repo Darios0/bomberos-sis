@@ -70,8 +70,12 @@ export default function DashboardHome() {
   if (!datos) return null
 
   const grupoInfo = COLOR_GRUPO[datos.grupoOperativo] || COLOR_GRUPO.GRUPO_1
-  const fechaFormateada = new Date(datos.fecha).toLocaleDateString('es-EC', {
-    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+ const fechaFormateada = new Date(datos.fecha + 'T00:00:00')
+  .toLocaleDateString('es-EC', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
   })
 
   return (

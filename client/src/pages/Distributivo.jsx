@@ -87,6 +87,25 @@ const textoColor = '#1a1a1a'
             {emp.esJornadaEcu && ' · Jorn.'}
             {emp.grupoEcu     && ` · ${emp.grupoEcu.replace('_',' ')}`}
           </Typography>
+
+          
+          {/* Chips de grupos especializados */}
+{emp.gruposEspecializados?.length > 0 && (
+  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.3, mt: 0.3 }}>
+    {emp.gruposEspecializados.map(g => (
+      <Box key={g.id} sx={{
+        px: 0.5, py: 0, borderRadius: 0.5,
+        bgcolor: g.color,
+        fontSize: 8,
+        color: 'white',
+        fontWeight: 'bold',
+        lineHeight: '14px'
+      }}>
+        {g.nombre}
+      </Box>
+    ))}
+  </Box>
+)}
        {colorInfo && (
   <Chip
     label={colorInfo.label}
