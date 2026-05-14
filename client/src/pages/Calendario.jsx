@@ -249,10 +249,15 @@ export default function Calendario() {
   const grupoInfo = datos ? COLOR_GRUPO[datos.grupoOperativo] : null
 
   return (
-    <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
+    <Box sx={{
+  display: 'flex',
+  flexDirection: { xs: 'column', md: 'row' },
+  gap: 2,
+  height: '100%'
+}}>
 
       {/* Calendario */}
-      <Box sx={{ width: 480, flexShrink: 0 }}>
+       <Box sx={{ width: { xs: '100%', md: 480 }, flexShrink: 0 }}>
         <FullCalendar
           plugins={[dayGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
@@ -263,7 +268,8 @@ export default function Calendario() {
             center: 'title',
             right:  ''
           }}
-          height={480}
+          height="auto"
+aspectRatio="1"
           dayCellClassNames={(arg) =>
             arg.dateStr === diaSeleccionado ? ['dia-seleccionado'] : []
           }

@@ -122,7 +122,7 @@ export default function DashboardHome() {
 )}
 
       {/* Métricas principales */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 2, mb: 3 }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,1fr)', md: 'repeat(4,1fr)' }, gap: 2, mb: 3 }}>
         <TarjetaMetrica
           valor={datos.totalDisponibles}
           label="Disponibles hoy"
@@ -149,7 +149,7 @@ export default function DashboardHome() {
         />
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 3 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}>
 
         {/* Personal ausente */}
         <Card>
@@ -230,7 +230,7 @@ export default function DashboardHome() {
           <Typography variant="subtitle1" fontWeight="bold" mb={1.5}>
             Personal por estación — hoy
           </Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,1fr)', md: 'repeat(4,1fr)' }, gap: 1 }}>
             {datos.porEstacion.map(est => (
               <Box key={est.id} sx={{
                 p: 1, borderRadius: 1, border: '1px solid',
@@ -274,8 +274,8 @@ export default function DashboardHome() {
           <Typography variant="subtitle1" fontWeight="bold" mb={1.5} color="#e65100">
             Central ECU — 911
           </Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1 }}>
-            {['ECU_1','ECU_2','ECU_3','ECU_4'].map(sg => {
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,1fr)', md: 'repeat(4,1fr)' }, gap: 1 }}>
+  {['ECU_1','ECU_2','ECU_3','ECU_4'].map(sg => {
               const turnos = datos.resumenEcu[sg] || ['Libre']
               const libre  = turnos[0] === 'Libre'
               return (

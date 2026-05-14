@@ -39,7 +39,7 @@ export default function Login() {
       justifyContent: 'center',
       bgcolor: '#f5f5f5'
     }}>
-      <Card sx={{ width: 380, p: 2 }}>
+      <Card sx={{ width: '100%', maxWidth: 380, p: 2, mx: 2 }}>
         <CardContent>
           <Typography variant="h5" fontWeight="bold" textAlign="center" mb={1}>
             🚒 Bomberos

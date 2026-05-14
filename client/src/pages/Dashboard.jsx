@@ -1,19 +1,21 @@
 import { useState } from 'react'
 import {
   Box, Typography, Button, Chip, Drawer, List,
-  ListItem, ListItemButton, ListItemText, IconButton, Tooltip
+  ListItem, ListItemButton, ListItemText, IconButton,
+  Tooltip, useMediaQuery, useTheme, AppBar, Toolbar
 } from '@mui/material'
+import MenuIcon from '@mui/icons-material/Menu'
 import { useAuth } from '../context/AuthContext'
-import Calendario  from './Calendario'
-import Empleados   from './Empleados'
-import Estaciones  from './Estaciones'
-import Distributivo from './Distributivo'
 import { NotificacionesProvider } from '../context/NotificacionesContext'
 import CampanaNotificaciones from '../components/CampanaNotificaciones'
-import Usuarios from './Usuarios'
-import Reportes from './Reportes'
-import Reemplazos from './Reemplazos'
-import Perfil from './Perfil'
+import Calendario   from './Calendario'
+import Empleados    from './Empleados'
+import Estaciones   from './Estaciones'
+import Distributivo from './Distributivo'
+import Reemplazos   from './Reemplazos'
+import Reportes     from './Reportes'
+import Usuarios     from './Usuarios'
+import Perfil       from './Perfil'
 import DashboardHome from './DashboardHome'
 
 const MENU = [
@@ -32,175 +34,184 @@ const SIDEBAR_COLAPSADO = 56
 
 export default function Dashboard() {
   const { usuario, logout } = useAuth()
- const vistaInicial = () => {
-  if (!usuario) return 'calendario'
-  return 'calendario'
-}
-const [vista, setVista] = useState('inicio')
+  const theme    = useTheme()
+  const esMobil  = useMediaQuery(theme.breakpoints.down('md'))
+
+  const [vista, setVista]         = useState('inicio')
   const [colapsado, setColapsado] = useState(false)
+  const [drawerMovil, setDrawerMovil] = useState(false)
+
+  const menuFiltrado = MENU.filter(item =>
+    !item.roles || item.roles.includes(usuario?.rol)
+  )
 
   const ancho = colapsado ? SIDEBAR_COLAPSADO : SIDEBAR_ANCHO
 
-  return (
-  <NotificacionesProvider>
-  <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+  const handleVista = (v) => {
+    setVista(v)
+    if (esMobil) setDrawerMovil(false)
+  }
 
-      {/* Sidebar */}
-      <Box sx={{
-        width: ancho,
-        flexShrink: 0,
-        bgcolor: '#b71c1c',
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'width 0.2s',
-        overflow: 'hidden',
-        zIndex: 10
-      }}>
-        {/* Header sidebar */}
-        <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          {!colapsado && (
-            <Box>
-              <Typography variant="subtitle1" fontWeight="bold" color="white" noWrap>
-                🚒 Bomberos
-              </Typography>
-              <Typography variant="caption" color="rgba(255,255,255,0.7)" noWrap>
-                {usuario?.nombre}
-              </Typography>
-              <br />
-              <Chip
-                label={usuario?.rol}
-                size="small"
-                sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', mt: 0.5, fontSize: 10 }}
-              />
-            </Box>
-          )}
-          <IconButton
-            onClick={() => setColapsado(c => !c)}
-            sx={{ color: 'white', ml: colapsado ? 0 : 'auto' }}
-            size="small"
-          >
+  const ContenidoSidebar = () => (
+    <Box sx={{
+      width: esMobil ? 240 : ancho,
+      bgcolor: '#b71c1c',
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      transition: 'width 0.2s',
+      overflow: 'hidden'
+    }}>
+      {/* Header */}
+      <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {(!colapsado || esMobil) && (
+          <Box>
+            <Typography variant="subtitle1" fontWeight="bold" color="white" noWrap>
+              🚒 Bomberos
+            </Typography>
+            <Typography variant="caption" color="rgba(255,255,255,0.7)" noWrap>
+              {usuario?.nombre}
+            </Typography>
+            <br />
+            <Chip label={usuario?.rol} size="small"
+              sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', mt: 0.5, fontSize: 10 }} />
+          </Box>
+        )}
+        {!esMobil && (
+          <IconButton onClick={() => setColapsado(c => !c)}
+            sx={{ color: 'white', ml: colapsado ? 0 : 'auto' }} size="small">
             {colapsado ? '▶' : '◀'}
           </IconButton>
-        </Box>
-
-        {/* Menú */}
-        <List sx={{ flex: 1, pt: 0 }}>
-          {MENU.filter(item => !item.roles || item.roles.includes(usuario?.rol)).map(item => (
-  <ListItem key={item.vista} disablePadding>
-              <Tooltip title={colapsado ? item.label : ''} placement="right">
-                <ListItemButton
-                  selected={vista === item.vista}
-                  onClick={() => setVista(item.vista)}
-                  sx={{
-                    color: 'white',
-                    px: colapsado ? 1.5 : 2,
-                    justifyContent: colapsado ? 'center' : 'flex-start',
-                    '&.Mui-selected': { bgcolor: 'rgba(255,255,255,0.2)' },
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
-                  }}
-                >
-                  <Typography fontSize={18} sx={{ mr: colapsado ? 0 : 1 }}>
-                    {item.icono}
-                  </Typography>
-                  {!colapsado && <ListItemText primary={item.label} />}
-                </ListItemButton>
-              </Tooltip>
-            </ListItem>
-          ))}
-        </List>
-
-{/* Perfil */}
-<Box sx={{ px: 1.5, pb: 1 }}>
-  <Tooltip title={colapsado ? 'Mi perfil' : ''} placement="right">
-    <ListItemButton
-      selected={vista === 'perfil'}
-      onClick={() => setVista('perfil')}
-      sx={{
-        color: 'white', borderRadius: 1,
-        px: colapsado ? 1.5 : 2,
-        justifyContent: colapsado ? 'center' : 'flex-start',
-        '&.Mui-selected': { bgcolor: 'rgba(255,255,255,0.2)' },
-        '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
-      }}
-    >
-      <Typography fontSize={18} sx={{ mr: colapsado ? 0 : 1 }}>👤</Typography>
-      {!colapsado && (
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="caption" display="block" noWrap color="white" fontWeight={500}>
-            {usuario?.nombre}
-          </Typography>
-          <Typography variant="caption" display="block" noWrap
-            sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 10 }}>
-            Mi perfil
-          </Typography>
-        </Box>
-      )}
-    </ListItemButton>
-  </Tooltip>
-</Box>
-
-        {/* Cerrar sesión */}
-        <Box sx={{ p: 1.5 }}>
-          <Tooltip title={colapsado ? 'Cerrar sesión' : ''} placement="right">
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={logout}
-              sx={{
-                color: 'white',
-                borderColor: 'rgba(255,255,255,0.5)',
-                minWidth: 0,
-                px: colapsado ? 1 : 2,
-                fontSize: colapsado ? 16 : 14
-              }}
-            >
-              {colapsado ? '⏻' : 'Cerrar sesión'}
-            </Button>
-          </Tooltip>
-        </Box>
+        )}
       </Box>
 
-      {/* Contenido principal */}
-      <Box sx={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        minWidth: 0,
-        overflow: 'hidden'
-      }}>
-        {/* AppBar */}
-        <Box sx={{
-  bgcolor: '#c62828', color: 'white',
-  px: 3, py: 1, flexShrink: 0,
-  display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-}}>
-  <Typography variant="h6">
-    {MENU.find(m => m.vista === vista)?.label || 'Sistema'}
-  </Typography>
-  <CampanaNotificaciones />
-</Box>
+      {/* Menú */}
+      <List sx={{ flex: 1, pt: 0 }}>
+        {menuFiltrado.map(item => (
+          <ListItem key={item.vista} disablePadding>
+            <Tooltip title={colapsado && !esMobil ? item.label : ''} placement="right">
+              <ListItemButton
+                selected={vista === item.vista}
+                onClick={() => handleVista(item.vista)}
+                sx={{
+                  color: 'white',
+                  px: colapsado && !esMobil ? 1.5 : 2,
+                  justifyContent: colapsado && !esMobil ? 'center' : 'flex-start',
+                  '&.Mui-selected': { bgcolor: 'rgba(255,255,255,0.2)' },
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+                }}
+              >
+                <Typography fontSize={18} sx={{ mr: colapsado && !esMobil ? 0 : 1 }}>
+                  {item.icono}
+                </Typography>
+                {(!colapsado || esMobil) && <ListItemText primary={item.label} />}
+              </ListItemButton>
+            </Tooltip>
+          </ListItem>
+        ))}
+      </List>
 
-        {/* Vista activa — scroll independiente */}
-        <Box sx={{
-  flex: 1,
-  overflow: 'auto',
-  p: vista === 'distributivo' ? 2 : 3,
-  bgcolor: '#fafafa'
-}}>
-        {vista === 'inicio'      && <DashboardHome />}
-        {vista === 'calendario'  && <Calendario />}
-        {vista === 'distributivo' && <Distributivo />}
-        {vista === 'reemplazos'  && <Reemplazos />}
-        {vista === 'empleados'   && <Empleados />}
-        {vista === 'estaciones'  && <Estaciones />}
-        {vista === 'reportes'    && <Reportes />}
-        {vista === 'usuarios'    && <Usuarios />}
-        {vista === 'perfil'      && <Perfil />}
-        </Box>
+      {/* Perfil */}
+      <Box sx={{ px: 1.5, pb: 1 }}>
+        <ListItemButton
+          selected={vista === 'perfil'}
+          onClick={() => handleVista('perfil')}
+          sx={{
+            color: 'white', borderRadius: 1,
+            px: colapsado && !esMobil ? 1.5 : 2,
+            justifyContent: colapsado && !esMobil ? 'center' : 'flex-start',
+            '&.Mui-selected': { bgcolor: 'rgba(255,255,255,0.2)' },
+            '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+          }}
+        >
+          <Typography fontSize={18} sx={{ mr: colapsado && !esMobil ? 0 : 1 }}>👤</Typography>
+          {(!colapsado || esMobil) && (
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="caption" display="block" noWrap color="white" fontWeight={500}>
+                {usuario?.nombre}
+              </Typography>
+              <Typography variant="caption" display="block" noWrap
+                sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 10 }}>
+                Mi perfil
+              </Typography>
+            </Box>
+          )}
+        </ListItemButton>
+      </Box>
+
+      {/* Cerrar sesión */}
+      <Box sx={{ p: 1.5 }}>
+        <Button fullWidth variant="outlined" onClick={logout}
+          sx={{
+            color: 'white', borderColor: 'rgba(255,255,255,0.5)',
+            minWidth: 0, px: colapsado && !esMobil ? 1 : 2,
+            fontSize: colapsado && !esMobil ? 16 : 14
+          }}>
+          {colapsado && !esMobil ? '⏻' : 'Cerrar sesión'}
+        </Button>
       </Box>
     </Box>
-  
-  </NotificacionesProvider>
+  )
 
+  return (
+    <NotificacionesProvider>
+      <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+
+        {/* Sidebar desktop */}
+        {!esMobil && (
+          <Box sx={{ width: ancho, flexShrink: 0, transition: 'width 0.2s' }}>
+            <ContenidoSidebar />
+          </Box>
+        )}
+
+        {/* Drawer móvil */}
+        {esMobil && (
+          <Drawer
+            open={drawerMovil}
+            onClose={() => setDrawerMovil(false)}
+            PaperProps={{ sx: { bgcolor: 'transparent', boxShadow: 'none' } }}
+          >
+            <ContenidoSidebar />
+          </Drawer>
+        )}
+
+        {/* Contenido principal */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+
+          {/* AppBar */}
+          <AppBar position="static" sx={{ bgcolor: '#c62828', flexShrink: 0 }}>
+            <Toolbar variant="dense" sx={{ minHeight: 48 }}>
+              {esMobil && (
+                <IconButton color="inherit" onClick={() => setDrawerMovil(true)} sx={{ mr: 1 }}>
+                  <MenuIcon />
+                </IconButton>
+              )}
+              <Typography variant="h6" sx={{ flex: 1, fontSize: esMobil ? 14 : 18 }}>
+                {MENU.find(m => m.vista === vista)?.label || 'Mi perfil'}
+              </Typography>
+              <CampanaNotificaciones />
+            </Toolbar>
+          </AppBar>
+
+          {/* Vista activa */}
+          <Box sx={{
+            flex: 1,
+            overflow: 'auto',
+            p: esMobil ? 1 : vista === 'distributivo' ? 2 : 3,
+            bgcolor: '#fafafa'
+          }}>
+            {vista === 'inicio'       && <DashboardHome />}
+            {vista === 'calendario'   && <Calendario />}
+            {vista === 'distributivo' && <Distributivo />}
+            {vista === 'reemplazos'   && <Reemplazos />}
+            {vista === 'empleados'    && <Empleados />}
+            {vista === 'estaciones'   && <Estaciones />}
+            {vista === 'reportes'     && <Reportes />}
+            {vista === 'usuarios'     && <Usuarios />}
+            {vista === 'perfil'       && <Perfil />}
+          </Box>
+        </Box>
+      </Box>
+    </NotificacionesProvider>
   )
 }
