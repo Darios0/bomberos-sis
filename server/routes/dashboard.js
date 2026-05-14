@@ -5,15 +5,23 @@ const {
   getResumenEcuPorFecha
 } = require('../utils/turnos')
 const router = express.Router()
+const { determinarOficialControl } = require('../utils/oficialControl')
 
 router.get('/hoy', async (req, res) => {
   try {
-    const hoy     = new Date()
-    const fechaStr = hoy.toISOString().split('T')[0]
-    const fechaDate = new Date(fechaStr + 'T00:00:00.000Z')
+    // Ecuador = UTC-5
+ const hoy = new Date()
 
-    const mes  = hoy.getMonth() + 1
-    const anio = hoy.getFullYear()
+hoy.setHours(hoy.getHours() - 0)
+
+
+
+const fechaStr  = hoy.toISOString().split('T')[0]
+
+const fechaDate = new Date(fechaStr + 'T00:00:00.000Z')
+
+const mes  = hoy.getMonth() + 1
+const anio = hoy.getFullYear()
 
     const grupoOperativo = getGrupoOperativoPorFecha(fechaDate)
     const resumenEcu     = getResumenEcuPorFecha(fechaDate)
@@ -28,7 +36,8 @@ router.get('/hoy', async (req, res) => {
         }
       }
     })
-
+    
+    
     // Ausencias activas hoy
     const ausencias = await prisma.ausencia.findMany({
       where: {
@@ -79,6 +88,20 @@ router.get('/hoy', async (req, res) => {
       }
     })
 
+    // Oficial de control
+const estacionX1Id = estaciones[0]?.id
+const itemsX1      = personalTurno.filter(i =>
+  i.estacionId === estacionX1Id && !i.esAdmin
+)
+
+// Enriquecer con datos del empleado
+const idsX1 = itemsX1.map(i => i.empleadoId)
+const empX1 = await prisma.empleado.findMany({
+  where: { id: { in: idsX1 } }
+})
+
+const oficialControl = determinarOficialControl(empX1, idsAusentes)
+
     res.json({
       fecha:         fechaStr,
       grupoOperativo,
@@ -92,6 +115,7 @@ router.get('/hoy', async (req, res) => {
       reemplazos,
       notificaciones,
       porEstacion,
+      oficialControl,      // ← agregar
       distributivoExiste: !!distributivo
     })
   } catch (error) {

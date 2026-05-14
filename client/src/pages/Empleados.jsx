@@ -22,7 +22,8 @@ const INICIAL = {
   nombre: '', cedula: '', rango: '',
   tipoPersonal: 'OPERATIVO',
   grupoOperativo: '', grupoEcu: '', estacionId: '',
-  esParamedico: false
+  esParamedico: false,
+  antiguedad: ''
 }
 
 const COLOR_TIPO = { OPERATIVO: 'error', ECU: 'warning', ADMINISTRATIVO: 'info' }
@@ -81,7 +82,8 @@ export default function Empleados() {
       grupoOperativo: emp.grupoOperativo || '',
       grupoEcu:       emp.grupoEcu || '',
       estacionId:     emp.estacionId || '',
-      esParamedico:   emp.esParamedico || false
+      esParamedico:   emp.esParamedico || false,
+      antiguedad: emp.antiguedad || ''
     })
     setError('')
     setDialogo(true)
@@ -90,51 +92,46 @@ export default function Empleados() {
   const cerrar = () => { setDialogo(false); setError('') }
 
   const guardar = async () => {
-    if (!form.nombre || !form.cedula || !form.rango || !form.tipoPersonal) {
-      setError('Nombre, cédula, rango y tipo son requeridos')
-      return
-    }
-    if (form.tipoPersonal === 'OPERATIVO' && !form.grupoOperativo) {
-      setError('Selecciona el grupo operativo')
-      return
-    }
-    if (form.tipoPersonal === 'ECU' && !form.grupoEcu) {
-      setError('Selecciona el grupo ECU')
-      return
-    }
+  if (!form.nombre || !form.cedula || !form.rango || !form.tipoPersonal) {
+    setError('Nombre, cédula, rango y tipo son requeridos')
+    return
+  }
+  if (form.tipoPersonal === 'OPERATIVO' && !form.grupoOperativo) {
+    setError('Selecciona el grupo operativo')
+    return
+  }
+  if (form.tipoPersonal === 'ECU' && !form.grupoEcu) {
+    setError('Selecciona el grupo ECU')
+    return
+  }
 
-    const data = {
-      nombre:       form.nombre,
-      cedula:       form.cedula,
-      rango:        form.rango,
-      tipoPersonal: form.tipoPersonal,
-      grupoOperativo: form.tipoPersonal === 'OPERATIVO' ? form.grupoOperativo : null,
-      grupoEcu:       form.tipoPersonal === 'ECU'       ? form.grupoEcu       : null,
-      estacionId:     form.estacionId ? parseInt(form.estacionId) : null
-    }
-
-    try {
-      if (editando) {
-  await api.put(`/empleados/${editando}`, {
+  const payload = {
     nombre:         form.nombre,
     cedula:         form.cedula,
     rango:          form.rango,
     tipoPersonal:   form.tipoPersonal,
-    grupoOperativo: form.grupoOperativo || null,
-    grupoEcu:       form.grupoEcu       || null,
-    estacionId:     form.estacionId     || null,
-    activo:         form.activo,
-    esParamedico:   Boolean(form.esParamedico)
-  })
-      } else {
-        await api.post('/empleados', data)
-      }
-      cerrar()
-      cargar()
-    } catch (err) {
-      setError(err.response?.data?.error || 'Error al guardar')
-    }
+    grupoOperativo: form.tipoPersonal === 'OPERATIVO' ? form.grupoOperativo : null,
+    grupoEcu:       form.tipoPersonal === 'ECU'       ? form.grupoEcu       : null,
+    estacionId:     form.estacionId   ? parseInt(form.estacionId)           : null,
+    esParamedico:   Boolean(form.esParamedico),
+    antiguedad:     form.antiguedad   ? parseInt(form.antiguedad)           : 99
   }
+
+  console.log('Enviando payload:', payload)
+
+  try {
+    if (editando) {
+      payload.activo = form.activo
+      await api.put(`/empleados/${editando}`, payload)
+    } else {
+      await api.post('/empleados', payload)
+    }
+    cerrar()
+    cargar()
+  } catch (err) {
+    setError(err.response?.data?.error || 'Error al guardar')
+  }
+}
 
   const activar = async (id) => {
   if (!confirm('¿Reactivar este empleado?')) return
@@ -196,7 +193,8 @@ export default function Empleados() {
             <TableRow>
               <TableCell><b>Nombre</b></TableCell>
               <TableCell><b>Cédula</b></TableCell>
-              <TableCell><b>Rango</b></TableCell>
+              <TableCell><b>Rango</b></TableCell> 
+              <TableCell><b>Antigüedad</b></TableCell>
               <TableCell><b>Tipo</b></TableCell>
               <TableCell><b>Grupo</b></TableCell>
               <TableCell><b>Paramédico</b></TableCell>
@@ -211,6 +209,11 @@ export default function Empleados() {
                 <TableCell>{emp.nombre}</TableCell>
                 <TableCell>{emp.cedula}</TableCell>
                 <TableCell>{emp.rango}</TableCell>
+                <TableCell>
+                <Typography variant="caption" color="text.secondary">
+                  {emp.antiguedad && emp.antiguedad !== 99 ? emp.antiguedad : '—'}
+                </Typography>
+              </TableCell>
                 <TableCell>
   {emp.esParamedico && (
     <Chip label="Paramédico" size="small"
@@ -296,6 +299,18 @@ export default function Empleados() {
               {RANGOS.map(r => <MenuItem key={r} value={r}>{r}</MenuItem>)}
             </Select>
           </FormControl>
+
+
+          <TextField
+  label="Antigüedad (número — 1 = más antiguo)"
+  type="number"
+  fullWidth
+  margin="normal"
+  inputProps={{ min: 1, max: 50 }}
+  value={form.antiguedad}
+  onChange={e => setForm({ ...form, antiguedad: parseInt(e.target.value) || '' })}
+  helperText="Ejemplo: 1 = más antiguo en su rango, 2 = segundo más antiguo"
+/>
 
           <FormControl fullWidth margin="normal">
             <InputLabel>Tipo de personal</InputLabel>

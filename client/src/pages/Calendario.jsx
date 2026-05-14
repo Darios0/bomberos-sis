@@ -358,6 +358,17 @@ export default function Calendario() {
                     size="small"
                   />
                 )}
+                {datos.oficialControl && (
+  <Chip
+    label={` Oficial/Clase de control: ${datos.oficialControl.nombre} (${datos.oficialControl.rango})`}
+    sx={{
+      bgcolor: 'rgba(255,255,255,0.95)',
+      color: grupoInfo?.bg || '#c62828',
+      fontWeight: 'bold',
+      fontSize: 11
+    }}
+  />
+)}
                 {!datos.distributivoExiste && (
                   <Chip
                     label="Sin distributivo este mes"

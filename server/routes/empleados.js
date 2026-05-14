@@ -32,8 +32,10 @@ router.get('/:id', async (req, res) => {
   }
 })
 
+
+
 router.post('/', async (req, res) => {
- const { nombre, cedula, rango, tipoPersonal, grupoOperativo, grupoEcu, estacionId, esParamedico } = req.body
+ const { nombre, cedula, rango, tipoPersonal, grupoOperativo, grupoEcu, estacionId, esParamedico, antiguedad } = req.body
   if (!nombre || !cedula || !rango || !tipoPersonal) {
     return res.status(400).json({ error: 'Nombre, cédula, rango y tipo son requeridos' })
   }
@@ -44,7 +46,8 @@ router.post('/', async (req, res) => {
         grupoOperativo: grupoOperativo || null,
         grupoEcu:       grupoEcu       || null,
         estacionId:     estacionId     || null,
-        esParamedico:   esParamedico   || false
+        esParamedico:   esParamedico   || false,
+        antiguedad: antiguedad ? parseInt(antiguedad) : 99
       }
     })
     res.status(201).json(empleado)
@@ -57,7 +60,7 @@ router.post('/', async (req, res) => {
 })
 
 router.put('/:id', async (req, res) => {
-  const { nombre, cedula, rango, tipoPersonal, grupoOperativo, grupoEcu, estacionId, activo, esParamedico } = req.body
+  const { nombre, cedula, rango, tipoPersonal, grupoOperativo, grupoEcu, estacionId, activo, esParamedico, antiguedad } = req.body
   try {
     const empleado = await prisma.empleado.update({
       where: { id: parseInt(req.params.id) },
@@ -66,13 +69,21 @@ router.put('/:id', async (req, res) => {
         grupoOperativo: grupoOperativo || null,
         grupoEcu:       grupoEcu       || null,
         estacionId:     estacionId     || null,
-        esParamedico:   esParamedico ?? false
+        esParamedico:   esParamedico ?? false,
+        antiguedad: antiguedad ? parseInt(antiguedad) : 99
       }
     })
     res.json(empleado)
   } catch {
     res.status(500).json({ error: 'Error al actualizar empleado' })
   }
+})
+
+router.put('/:id', async (req, res) => {
+  console.log('PUT body completo:', req.body)
+  const { nombre, cedula, rango, tipoPersonal, grupoOperativo, grupoEcu, estacionId, activo, esParamedico, antiguedad } = req.body
+  console.log('antiguedad recibida:', antiguedad)
+
 })
 
 router.delete('/:id', async (req, res) => {
@@ -86,5 +97,6 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: 'Error al desactivar empleado' })
   }
 })
+
 
 module.exports = router

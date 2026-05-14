@@ -23,6 +23,7 @@ const PUEDE_EDITAR = ['ADMIN', 'OPERADOR']
 const ECU_GRUPOS   = ['ECU_1','ECU_2','ECU_3','ECU_4']
 const EST_ANCHO = '1fr'
 
+
 // ── Tarjeta draggable ──────────────────────────────────────────
 function TarjetaEmpleado({ emp, bloqueado, estacionId }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -185,7 +186,7 @@ function ZonaAdmin({ items, puedeEditar, onQuitar }) {
             {puedeEditar && (
               <Button onClick={() => onQuitar('ADMIN', emp.id)}
                 sx={{ position:'absolute', right:-4, top:0, minWidth:18, p:0, fontSize:15, color:'error.main', lineHeight:1 }}>
-                −
+                
               </Button>
             )}
           </Box>
@@ -259,7 +260,7 @@ function SubgrupoEcu({ nombre, items, puedeEditar, onQuitar }) {
             {puedeEditar && (
               <Button onClick={() => onQuitar(nombre, emp.id)}
                 sx={{ position:'absolute', right:-4, top:0, minWidth:18, p:0, fontSize:15, color:'error.main', lineHeight:1 }}>
-                −
+                
               </Button>
             )}
           </Box>
@@ -365,6 +366,7 @@ export default function Distributivo() {
   const [zonaAdmin, setZonaAdmin]   = useState([])
   const [activeEmp, setActiveEmp]   = useState(null)
   const [cambiosPendientes, setCambiosPendientes] = useState(false)
+  const [oficialControl, setOficialControl] = useState(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -460,6 +462,7 @@ const sinAsignarNormal = personal
   }))
 
 setListaPersonal([...sinAsignarNormal, ...asignadosEnVacaciones])
+setOficialControl(distRes.data.oficialControl || null)
     } catch (e) {
       console.error(e)
       setError('Error al cargar el distributivo')
@@ -751,15 +754,20 @@ setCambiosPendientes(true)
       {mensaje && <Alert severity="success" sx={{ mb:2 }}>{mensaje}</Alert>}
       {error   && <Alert severity="error"   sx={{ mb:2 }}>{error}</Alert>}
       {!puedeEditar && <Alert severity="info" sx={{ mb:2 }}>Solo visualización</Alert>}
-      
+
+
+
 
       <DndContext
   sensors={sensors}
   onDragStart={handleDragStart}
   onDragEnd={handleDragEnd}
   onDragOver={handleDragOver}
-  
 >
+
+
+
+  
   <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
   <Typography variant="caption" color="text.secondary" fontWeight={500}>
     Tiempo en estación:
@@ -769,6 +777,7 @@ setCambiosPendientes(true)
   { label: '2 meses',  color: '#0097a7', texto: '#1a1a1a' },
   { label: '3 meses',  color: '#ef6c00', texto: 'white'   },
   { label: '+3 meses', color: '#c62828', texto: 'white'   },
+  
 ].map(c => (
     <Chip
     key={c.label}
@@ -782,10 +791,29 @@ setCambiosPendientes(true)
       fontWeight: 600
     }}
     />
-  ))
+  )) 
 }
- 
 </Box>
+
+{oficialControl && (
+  <Box sx={{
+    p: 1.5, mb: 2, borderRadius: 1,
+    bgcolor: '#fff8e1', border: '2px solid #f57c00',
+    display: 'flex', alignItems: 'center', gap: 1
+  }}>
+    <Typography fontSize={20}>⭐</Typography>
+    <Box>
+      <Typography variant="body2" fontWeight="bold" color="#e65100">
+        Oficial de Control — {oficialControl.nombre}
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        {oficialControl.rango} · Antigüedad: {oficialControl.antiguedad === 99 ? 'No definida' : oficialControl.antiguedad} · Puntaje: {oficialControl.puntajeTexto} · Estación X1
+      </Typography>
+    </Box>
+  </Box>
+)}
+
+
         <Box sx={{ display:'flex', gap:2, alignItems:'flex-start' }}>
 
           {/* Panel izquierdo */}
@@ -795,6 +823,8 @@ setCambiosPendientes(true)
   </Typography>
   <ListaSinAsignar disponibles={disponibles} bloqueados={bloqueados} />
 </Paper>
+
+
 
           {/* Panel derecho con scroll */}
       <Box sx={{ flex:1, minWidth: 0 }}>

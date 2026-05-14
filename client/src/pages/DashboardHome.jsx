@@ -70,7 +70,7 @@ export default function DashboardHome() {
   if (!datos) return null
 
   const grupoInfo = COLOR_GRUPO[datos.grupoOperativo] || COLOR_GRUPO.GRUPO_1
-  const fechaFormateada = new Date(datos.fecha + 'T12:00:00').toLocaleDateString('es-EC', {
+  const fechaFormateada = new Date(datos.fecha).toLocaleDateString('es-EC', {
     weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
   })
 
@@ -88,7 +88,7 @@ export default function DashboardHome() {
         <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap', alignItems: 'center' }}>
           <Chip
             label={`Turno: ${grupoInfo.label}`}
-            sx={{ bgcolor: 'rgba(255,255,255,0.25)', color: 'white', fontWeight: 'bold' }}
+            sx={{ bgcolor: 'rgba(255, 255, 255, 0.25)', color: 'white', fontWeight: 'bold' }}
           />
           {!datos.distributivoExiste && (
             <Chip
@@ -99,6 +99,27 @@ export default function DashboardHome() {
           )}
         </Box>
       </Box>
+
+      {datos.oficialControl && (
+  <Box sx={{
+    p: 1.5, mb: 2, borderRadius: 1,
+    bgcolor: '#ffe1e1c6', border: '2px solid #000000',
+    display: 'flex', alignItems: 'center', gap: 1.5
+  }}>
+    <Typography fontSize={24}>👮</Typography>
+    <Box>
+      <Typography variant="body2" fontWeight="bold" color="#060606">
+        Oficial/Clase de Control del día
+      </Typography>
+      <Typography variant="subtitle1" fontWeight="bold" color="#060606">
+        {datos.oficialControl.nombre}
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        {datos.oficialControl.rango} · Estación X1
+      </Typography>
+    </Box>
+  </Box>
+)}
 
       {/* Métricas principales */}
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 2, mb: 3 }}>

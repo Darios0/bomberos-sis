@@ -1,6 +1,7 @@
 const express = require('express')
 const prisma  = require('../prisma/client')
 const router  = express.Router()
+const { determinarOficialControl } = require('../utils/oficialControl')
 
 // GET /api/distributivo/personal/:grupo/:mes/:anio
 router.get('/personal/:grupo/:mes/:anio', async (req, res) => {
@@ -112,7 +113,31 @@ if (distributivo?.items) {
   }))
 }
 
-res.json({ personal, distributivo })
+
+// Calcular oficial de control si hay distributivo
+let oficialControl = null
+if (distributivo?.items) {
+const estaciones   = await prisma.estacion.findMany({ orderBy: { id: 'asc' } })
+const estacionX1Id = estaciones[0]?.id
+
+if (estacionX1Id) {
+  const itemsX1 = distributivo.items.filter(i =>
+    i.estacionId === estacionX1Id && !i.esAdmin && !i.esEcu
+  )
+
+  // Obtener empleados frescos de la BD con toda su info
+  const idsX1 = itemsX1.map(i => i.empleadoId)
+  const empX1 = await prisma.empleado.findMany({
+    where: { id: { in: idsX1 } }
+  })
+
+  oficialControl = determinarOficialControl(empX1)
+}
+}
+
+
+
+res.json({ personal, distributivo, oficialControl})
   } catch (error) {
     console.error('Error en /personal:', error)
     res.status(500).json({ error: 'Error al obtener personal' })

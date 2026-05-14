@@ -5,18 +5,20 @@ const {
   getResumenEcuPorFecha
 } = require('../utils/turnos')
 const router = express.Router()
+const { determinarOficialControl } = require('../utils/oficialControl')
+
 
 router.get('/:fecha', async (req, res) => {
   try {
     const { fecha } = req.params
-    const fechaDate = new Date(fecha + 'T00:00:00.000Z')
+    const fechaDate = new Date(fecha + 'T00:00:00')
 
     const grupoOperativo = getGrupoOperativoPorFecha(fechaDate)
     const resumenEcu     = getResumenEcuPorFecha(fechaDate)
 
     // Buscar distributivo del mes para esa fecha
-    const mes  = fechaDate.getUTCMonth() + 1
-    const anio = fechaDate.getUTCFullYear()
+    const mes  = fechaDate.getMonth() + 1
+    const anio = fechaDate.getFullYear()
 
     const distributivo = await prisma.distributivo.findFirst({
       where: { mes, anio, grupo: grupoOperativo, esEcu: false },
@@ -77,14 +79,14 @@ reemplazos.forEach(r => {
 
     const porEstacion = estaciones.map(est => {
       const itemsEst = distributivo?.items?.filter(i => i.estacionId === est.id) || []
-    const operativos = itemsEst
-  .filter(i => !i.esAdmin)
-  .map(i => ({
-    ...i.empleado,
-    ausente:      idsAusentes.has(i.empleado.id),
-    ausenciaInfo: ausencias.find(a => a.empleadoId === i.empleado.id) || null,
-    reemplazo:    mapaReemplazos[i.empleado.id] || null
-  }))
+        const operativos = itemsEst
+          .filter(i => !i.esAdmin)
+          .map(i => ({
+            ...i.empleado,
+            ausente:      idsAusentes.has(i.empleado.id),
+            ausenciaInfo: ausencias.find(a => a.empleadoId === i.empleado.id) || null,
+            reemplazo:    mapaReemplazos[i.empleado.id] || null
+        }))
 const administrativos = itemsEst
   .filter(i => i.esAdmin)
   .map(i => ({
@@ -100,7 +102,16 @@ const administrativos = itemsEst
         administrativos,
         total:          operativos.length + administrativos.length
       }
-    })
+    }
+  )
+
+    // Determinar oficial de control (personal de X1 disponible de mayor rango)
+const estacionX1  = porEstacion.find(e => e.id === estaciones[0]?.id)
+const personalX1  = estacionX1
+  ? [...(estacionX1.operativos || []), ...(estacionX1.administrativos || [])]
+  : []
+
+const oficialControl = determinarOficialControl(personalX1, idsAusentes)
 
     // ECU
     const personalEcu = distributivoEcu?.items?.map(i => ({
@@ -128,6 +139,7 @@ const administrativos = itemsEst
       operativosAdmin,
       ausencias,
       reemplazos,
+      oficialControl,
       totalAusentes:     idsAusentes.size,
       distributivoExiste: !!distributivo
     })
