@@ -45,6 +45,27 @@ router.put('/:id', async (req, res) => {
   }
 })
 
+
+
+// DELETE /api/grupos-especializados/quitar
+router.delete('/quitar', async (req, res) => {
+  const { empleadoId, grupoEspecializadoId } = req.body
+  try {
+    await prisma.empleadoGrupoEspecializado.deleteMany({
+      where: {
+        empleadoId:           parseInt(empleadoId),
+        grupoEspecializadoId: parseInt(grupoEspecializadoId)
+      }
+    })
+    res.json({ mensaje: 'Grupo removido del empleado' })
+  } catch {
+    res.status(500).json({ error: 'Error al remover grupo' })
+  }
+})
+
+
+
+
 // DELETE /api/grupos-especializados/:id
 router.delete('/:id', async (req, res) => {
   try {
@@ -76,21 +97,7 @@ router.post('/asignar', async (req, res) => {
   }
 })
 
-// DELETE /api/grupos-especializados/quitar
-router.delete('/quitar', async (req, res) => {
-  const { empleadoId, grupoEspecializadoId } = req.body
-  try {
-    await prisma.empleadoGrupoEspecializado.deleteMany({
-      where: {
-        empleadoId:           parseInt(empleadoId),
-        grupoEspecializadoId: parseInt(grupoEspecializadoId)
-      }
-    })
-    res.json({ mensaje: 'Grupo removido del empleado' })
-  } catch {
-    res.status(500).json({ error: 'Error al remover grupo' })
-  }
-})
+
 
 // GET /api/grupos-especializados/empleado/:id
 router.get('/empleado/:id', async (req, res) => {

@@ -301,6 +301,45 @@ const cargar = async () => {
       )
     })}
 
+    {/* Resumen por estación */}
+    {historial.length > 0 && (
+      <>
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="subtitle2" fontWeight="bold" mb={1}>
+          Tiempo total por estación
+        </Typography>
+        {Object.entries(
+          historial.reduce((acc, h) => {
+            const nombre = h.estacion?.nombre || 'Desconocida'
+            const ini    = new Date(h.fechaInicio)
+            const fin    = h.fechaFin ? new Date(h.fechaFin) : new Date()
+            const dias   = Math.round((fin - ini) / 86400000)
+            acc[nombre]  = (acc[nombre] || 0) + dias
+            return acc
+          }, {})
+        ).map(([nombre, dias]) => {
+          const anios  = Math.floor(dias / 365)
+          const meses  = Math.floor((dias % 365) / 30)
+          return (
+            <Box key={nombre} sx={{
+              display: 'flex', justifyContent: 'space-between',
+              py: 0.5, px: 1, bgcolor: '#f5f5f5',
+              borderRadius: 1, mb: 0.5
+            }}>
+              <Typography variant="body2">{nombre}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {anios > 0 && `${anios} año${anios > 1 ? 's' : ''} `}
+                {meses > 0 && `${meses} mes${meses > 1 ? 'es' : ''}`}
+                {anios === 0 && meses === 0 && 'Menos de 1 mes'}
+              </Typography>
+            </Box>
+          )
+        })}
+      </>
+    )}
+  </Box>
+)}
+
     {/* TAB GRUPOS ESPECIALIZADOS */}
 {tab === 3 && (
   <Box>
@@ -372,44 +411,6 @@ const cargar = async () => {
   </Box>
 )}
 
-    {/* Resumen por estación */}
-    {historial.length > 0 && (
-      <>
-        <Divider sx={{ my: 2 }} />
-        <Typography variant="subtitle2" fontWeight="bold" mb={1}>
-          Tiempo total por estación
-        </Typography>
-        {Object.entries(
-          historial.reduce((acc, h) => {
-            const nombre = h.estacion?.nombre || 'Desconocida'
-            const ini    = new Date(h.fechaInicio)
-            const fin    = h.fechaFin ? new Date(h.fechaFin) : new Date()
-            const dias   = Math.round((fin - ini) / 86400000)
-            acc[nombre]  = (acc[nombre] || 0) + dias
-            return acc
-          }, {})
-        ).map(([nombre, dias]) => {
-          const anios  = Math.floor(dias / 365)
-          const meses  = Math.floor((dias % 365) / 30)
-          return (
-            <Box key={nombre} sx={{
-              display: 'flex', justifyContent: 'space-between',
-              py: 0.5, px: 1, bgcolor: '#f5f5f5',
-              borderRadius: 1, mb: 0.5
-            }}>
-              <Typography variant="body2">{nombre}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {anios > 0 && `${anios} año${anios > 1 ? 's' : ''} `}
-                {meses > 0 && `${meses} mes${meses > 1 ? 'es' : ''}`}
-                {anios === 0 && meses === 0 && 'Menos de 1 mes'}
-              </Typography>
-            </Box>
-          )
-        })}
-      </>
-    )}
-  </Box>
-)}
 
       {/* Dialogo ausencia */}
       <Dialog open={dialogoAus} onClose={() => setDialogoAus(false)} fullWidth maxWidth="sm">

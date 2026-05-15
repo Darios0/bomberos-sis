@@ -2,13 +2,13 @@ const prisma = require('./prisma/client')
 
 async function main() {
   const grupos = [
-    { nombre: 'MATPEL',     color: '#ff5722', descripcion: 'Materiales Peligrosos' },
-    { nombre: 'EBREM',      color: '#9c27b0', descripcion: 'Emergencias en Espacios Confinados' },
-    { nombre: 'GOT',        color: '#2196f3', descripcion: 'Grupo Operativo Táctico' },
-    { nombre: 'BRIF',       color: '#4caf50', descripcion: 'Brigada de Incendios Forestales' },
-    { nombre: 'R-ACUATICO', color: '#00bcd4', descripcion: 'Rescate Acuático' },
-    { nombre: 'RESCATE',    color: '#ff9800', descripcion: 'Rescate General' },
-    { nombre: 'BUZO',       color: '#1565c0', descripcion: 'Buceo' },
+    { nombre: 'MATPEL',     color: '#64f6f9', descripcion: 'Materiales Peligrosos' },
+    { nombre: 'EBREM',      color: '#84633b', descripcion: 'Equipo de Busqueda y Rescate en Montaña ' },
+    { nombre: 'GOT',        color: '#060606', descripcion: 'Grupo Operativo Teconológico' },
+    { nombre: 'BRIF',       color: '#7cb675', descripcion: 'Brigada de Refuerzon en Incendios Forestales' },
+    { nombre: 'R-ACUATICO', color: '#2565f0', descripcion: 'Rescate Acuático' },
+    { nombre: 'RESCATE',    color: '#b700ff', descripcion: 'Rescate General' },
+    { nombre: 'BUZO',       color: '#002c5e', descripcion: 'Buceo' },
   ]
 
   for (const grupo of grupos) {

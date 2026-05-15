@@ -113,7 +113,7 @@ const textoColor = '#1a1a1a'
     sx={{
       fontSize: 8, height: 14,
       bgcolor: colorInfo.border,
-      color: colorInfo.nivel === 'verde' || colorInfo.nivel === 'azul' ? '#1a1a1a' : 'white',
+      color: colorInfo.nivel === 'verde' || colorInfo.nivel === 'azul' ? '#ffffff' : 'white',
       flexShrink: 0
     }}
   />
