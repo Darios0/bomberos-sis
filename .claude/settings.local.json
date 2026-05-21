@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"D:\\\\BOMBEROS\\\\bomberos-sis\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(grep -E \"\\\\.js$\")",
+      "Bash(grep -E \"\\\\.\\(jsx?|tsx?\\)$\")"
+    ]
+  }
+}
