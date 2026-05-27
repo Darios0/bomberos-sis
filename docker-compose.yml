@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+
+  # ============================================================================
+  # PostgreSQL 16 - Database
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: bomberos_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me_in_production}
+      POSTGRES_DB: ${DB_NAME:-bomberos_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bomberos_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Security: Only accessible from internal network
+    expose:
+      - 5432
+
+  # ============================================================================
+  # Node.js Backend + React Frontend
+  # ============================================================================
+  servidor:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: bomberos_server
+    restart: unless-stopped
+    environment:
+      # Database configuration
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-change_me_in_production}@postgres:5432/${DB_NAME:-bomberos_db}
+      
+      # JWT Secret (must be strong in production)
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_production}
+      
+      # Server configuration
+      PORT: 3001
+      NODE_ENV: ${NODE_ENV:-production}
+    volumes:
+      # Persist logs
+      - server_logs:/var/log/bomberos
+    networks:
+      - bomberos_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - 3001
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============================================================================
+  # Nginx - Reverse Proxy & Frontend Server
+  # ============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: bomberos_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/bomberos.conf:/etc/nginx/conf.d/bomberos.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+      - ./client/dist:/usr/share/nginx/html:ro
+    networks:
+      - bomberos_net
+    depends_on:
+      - servidor
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  server_logs:
+    driver: local
+  nginx_logs:
+    driver: local
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  bomberos_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
