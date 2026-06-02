@@ -5,7 +5,7 @@ const BASE = import.meta.env.VITE_API_URL ||
     ? 'http://localhost:3001/api'
     : `http://${window.location.hostname}:3001/api`)
 
-const api = axios.create({ baseURL: BASE })
+//const api = axios.create({ baseURL: BASE })
 
 const api = axios.create({
   baseURL: '/api',
