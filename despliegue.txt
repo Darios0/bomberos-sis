@@ -226,3 +226,16 @@ Si prefieres ver la información más detallada o en otros formatos, puedes usar
     hostname -I
 
     Usa el código con precaución.
+
+
+
+[root@localhost server]# docker exec -it bomberos_server node ./seed-grupos.js
+Creado: MATPEL
+Creado: EBREM
+Creado: GOT
+Creado: BRIF
+Creado: R-ACUATICO
+Creado: RESCATE
+Creado: BUZO
+Grupos especializados listos
+
